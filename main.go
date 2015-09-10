@@ -1,8 +1,19 @@
 package main
 
 import (
+	"log"
 	"os"
+	"strings"
+
+	"gopkg.in/Clever/kayvee-go.v2"
 )
+
+func redbull(user, team string) {
+	log.Printf(kayvee.FormatLog("redbullbot", kayvee.Info, "drink", map[string]interface{}{
+		"user": user,
+		"team": strings.ToLower(team),
+	}))
+}
 
 func main() {
 	token := os.Getenv("SLACK_TOKEN")

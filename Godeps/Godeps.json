@@ -1,0 +1,20 @@
+{
+	"ImportPath": "github.com/Clever/redbullbot",
+	"GoVersion": "go1.5",
+	"Deps": [
+		{
+			"ImportPath": "github.com/nlopes/slack",
+			"Comment": "v0.0.1",
+			"Rev": "3e8aa5655be613e1d4ce0b740993bb734a2b0f7b"
+		},
+		{
+			"ImportPath": "golang.org/x/net/websocket",
+			"Rev": "ea47fc708ee3e20177f3ca3716217c4ab75942cb"
+		},
+		{
+			"ImportPath": "gopkg.in/Clever/kayvee-go.v2",
+			"Comment": "v2.0.0",
+			"Rev": "6027372b81c7ac2294c5e4419ece8e04f0b740f1"
+		}
+	]
+}
