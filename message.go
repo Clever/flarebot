@@ -7,12 +7,13 @@ import (
 )
 
 type Message struct {
-	AuthorId  string
-	Timestamp string
-	Text      string
-	ChannelId string
-	api       *slack.Slack
-	sender    func(string, string)
+	AuthorId   string
+	AuthorName string
+	Timestamp  string
+	Text       string
+	Channel    string
+	api        *slack.Client
+	sender     func(string, string)
 }
 
 func (m *Message) Author() (string, error) {
@@ -24,16 +25,17 @@ func (m *Message) Author() (string, error) {
 }
 
 func (m *Message) Respond(msg string) {
-	m.sender(fmt.Sprintf("<@%s> %s", m.AuthorId, msg), m.ChannelId)
+	m.sender(fmt.Sprintf("@%s: %s", m.AuthorName, msg), m.Channel)
 }
 
-func messageEventToMessage(msg *slack.MessageEvent, api *slack.Slack, sender func(string, string)) *Message {
+func messageEventToMessage(msg *slack.MessageEvent, api *slack.Client, sender func(string, string)) *Message {
 	return &Message{
-		AuthorId:  msg.UserId,
-		Timestamp: msg.Timestamp,
-		Text:      msg.Text,
-		ChannelId: msg.ChannelId,
-		api:       api,
-		sender:    sender,
+		AuthorId:   msg.User,
+		AuthorName: msg.Username,
+		Timestamp:  msg.Timestamp,
+		Text:       msg.Text,
+		Channel:    msg.Channel,
+		api:        api,
+		sender:     sender,
 	}
 }

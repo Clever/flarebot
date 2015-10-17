@@ -23,12 +23,12 @@ type SearchParameters struct {
 }
 
 type CtxChannel struct {
-	Id   string `json:"id"`
+	ID   string `json:"id"`
 	Name string `json:"name"`
 }
 
 type CtxMessage struct {
-	UserId    string `json:"user"`
+	User      string `json:"user"`
 	Username  string `json:"username"`
 	Text      string `json:"text"`
 	Timestamp string `json:"ts"`
@@ -38,7 +38,7 @@ type CtxMessage struct {
 type SearchMessage struct {
 	Type      string     `json:"type"`
 	Channel   CtxChannel `json:"channel"`
-	UserId    string     `json:"user"`
+	User      string     `json:"user"`
 	Username  string     `json:"username"`
 	Timestamp string     `json:"ts"`
 	Text      string     `json:"text"`
@@ -80,9 +80,9 @@ func NewSearchParameters() SearchParameters {
 	}
 }
 
-func search(token, path, query string, params SearchParameters, files, messages, debug bool) (response *searchResponseFull, error error) {
+func (api *Client) _search(path, query string, params SearchParameters, files, messages bool) (response *searchResponseFull, error error) {
 	values := url.Values{
-		"token": {token},
+		"token": {api.config.token},
 		"query": {query},
 	}
 	if params.Sort != DEFAULT_SEARCH_SORT {
@@ -101,7 +101,7 @@ func search(token, path, query string, params SearchParameters, files, messages,
 		values.Add("page", strconv.Itoa(params.Page))
 	}
 	response = &searchResponseFull{}
-	err := parseResponse(path, values, response, debug)
+	err := post(path, values, response, api.debug)
 	if err != nil {
 		return nil, err
 	}
@@ -112,24 +112,24 @@ func search(token, path, query string, params SearchParameters, files, messages,
 
 }
 
-func (api *Slack) Search(query string, params SearchParameters) (*SearchMessages, *SearchFiles, error) {
-	response, err := search(api.config.token, "search.all", query, params, true, true, api.debug)
+func (api *Client) Search(query string, params SearchParameters) (*SearchMessages, *SearchFiles, error) {
+	response, err := api._search("search.all", query, params, true, true)
 	if err != nil {
 		return nil, nil, err
 	}
 	return &response.SearchMessages, &response.SearchFiles, nil
 }
 
-func (api *Slack) SearchFiles(query string, params SearchParameters) (*SearchFiles, error) {
-	response, err := search(api.config.token, "search.files", query, params, true, false, api.debug)
+func (api *Client) SearchFiles(query string, params SearchParameters) (*SearchFiles, error) {
+	response, err := api._search("search.files", query, params, true, false)
 	if err != nil {
 		return nil, err
 	}
 	return &response.SearchFiles, nil
 }
 
-func (api *Slack) SearchMessages(query string, params SearchParameters) (*SearchMessages, error) {
-	response, err := search(api.config.token, "search.messages", query, params, false, true, api.debug)
+func (api *Client) SearchMessages(query string, params SearchParameters) (*SearchMessages, error) {
+	response, err := api._search("search.messages", query, params, false, true)
 	if err != nil {
 		return nil, err
 	}

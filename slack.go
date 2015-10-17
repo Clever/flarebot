@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"regexp"
 	"sync"
-	"time"
+	//	"time"
 
 	"github.com/nlopes/slack"
 )
 
 type Client struct {
-	rtm              *slack.SlackWS
-	api              *slack.Slack
+	rtm              *slack.RTM
+	api              *slack.Client
 	username, userId string
 
 	mHandler sync.RWMutex
@@ -49,10 +49,10 @@ func (c *Client) Send(msg, channelId string) {
 	c.mCnt.Unlock()
 
 	c.outgoing <- slack.OutgoingMessage{
-		Id:        id,
-		ChannelId: channelId,
-		Text:      msg,
-		Type:      "message",
+		ID:      id,
+		Channel: channelId,
+		Text:    msg,
+		Type:    "message",
 	}
 }
 
@@ -77,31 +77,40 @@ func (c *Client) handleMessage(msg *slack.MessageEvent) {
 
 func (c *Client) start() {
 	c.outgoing = make(chan slack.OutgoingMessage)
-	chReceiver := make(chan slack.SlackEvent)
+	//chReceiver := make(chan slack.SlackEvent)
 
-	go c.rtm.HandleIncomingEvents(chReceiver)
-	go c.rtm.Keepalive(20 * time.Second)
-	go func(ws *slack.SlackWS, chSender chan slack.OutgoingMessage) {
+	messageParameters := slack.NewPostMessageParameters()
+	messageParameters.LinkNames = 1
+	messageParameters.AsUser = true
+
+	// go c.rtm.HandleIncomingEvents(chReceiver)
+	// go c.rtm.Keepalive(20 * time.Second)
+	go func(ws *slack.RTM, chSender chan slack.OutgoingMessage) {
 		for {
 			select {
 			case msg := <-chSender:
-				ws.SendMessage(&msg)
+				// FIXME: we need to use rtm.PostMessage if we want parameters that include parsing names
+				ws.PostMessage(msg.Channel, msg.Text, messageParameters)
 			}
 		}
 	}(c.rtm, c.outgoing)
 	for {
 		select {
-		case msg := <-chReceiver:
+		//		case msg := <-chReceiver:
+		case msg := <-c.rtm.IncomingEvents:
 			switch msg.Data.(type) {
 			case slack.HelloEvent:
 				fmt.Println("Hello!")
 			case *slack.MessageEvent:
 				c.handleMessage(msg.Data.(*slack.MessageEvent))
-			case *slack.SlackWSError:
-				error := msg.Data.(*slack.SlackWSError)
+			case *slack.RTMError:
+				error := msg.Data.(*slack.RTMError)
 				fmt.Printf("Error: %d - %s\n", error.Code, error.Msg)
 			case *slack.UserTypingEvent, *slack.PresenceChangeEvent, slack.LatencyReport:
 				// Do nothing
+			case *slack.ConnectionErrorEvent:
+				error := msg.Data.(*slack.ConnectionErrorEvent)
+				fmt.Printf("Error: %v\n", error)
 			default:
 				fmt.Printf("Unexpected: %#v\n", msg.Data)
 			}
@@ -120,15 +129,18 @@ func NewClient(token, domain, username string) (*Client, error) {
 	var userId string
 	for _, user := range users {
 		if user.Name == username {
-			userId = user.Id
+			userId = user.ID
 			break
 		}
 	}
 
-	rtm, err := api.StartRTM("", domain)
-	if err != nil {
-		return nil, err
-	}
+	/*
+		rtm, err := api.StartRTM("", domain)
+		if err != nil {
+			return nil, err
+		}*/
+	rtm := api.NewRTM()
+	go rtm.ManageConnection()
 
 	client := &Client{api: api, rtm: rtm, username: username, userId: userId}
 	go client.start()

@@ -1,20 +1,39 @@
 {
-	"ImportPath": "github.com/Clever/redbullbot",
+	"ImportPath": "github.com/Clever/flarebot",
 	"GoVersion": "go1.5",
 	"Deps": [
 		{
 			"ImportPath": "github.com/nlopes/slack",
-			"Comment": "v0.0.1",
-			"Rev": "3e8aa5655be613e1d4ce0b740993bb734a2b0f7b"
+			"Comment": "v0.0.1-65-g4a9ff5f",
+			"Rev": "4a9ff5f6ed8bb0df51620f49ee90fc0858a2913e"
 		},
 		{
-			"ImportPath": "golang.org/x/net/websocket",
+			"ImportPath": "golang.org/x/net/context",
 			"Rev": "ea47fc708ee3e20177f3ca3716217c4ab75942cb"
 		},
 		{
-			"ImportPath": "gopkg.in/Clever/kayvee-go.v2",
-			"Comment": "v2.0.0",
-			"Rev": "6027372b81c7ac2294c5e4419ece8e04f0b740f1"
+			"ImportPath": "golang.org/x/oauth2",
+			"Rev": "2fbf3d7329d847b125188ad64b68cfb1f548938a"
+		},
+		{
+			"ImportPath": "google.golang.org/api/drive/v2",
+			"Rev": "bce17bfa8913f8777eb5221beb361c03edf5817e"
+		},
+		{
+			"ImportPath": "google.golang.org/api/googleapi",
+			"Rev": "bce17bfa8913f8777eb5221beb361c03edf5817e"
+		},
+		{
+			"ImportPath": "google.golang.org/api/internal",
+			"Rev": "bce17bfa8913f8777eb5221beb361c03edf5817e"
+		},
+		{
+			"ImportPath": "google.golang.org/cloud/compute/metadata",
+			"Rev": "9fdfebf8027334a2f0f583591507f08b0ab166d8"
+		},
+		{
+			"ImportPath": "google.golang.org/cloud/internal",
+			"Rev": "9fdfebf8027334a2f0f583591507f08b0ab166d8"
 		}
 	]
 }

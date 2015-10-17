@@ -21,43 +21,10 @@ const (
 )
 
 type chatResponseFull struct {
-	ChannelId string `json:"channel"`
+	Channel   string `json:"channel"`
 	Timestamp string `json:"ts"`
 	Text      string `json:"text"`
 	SlackResponse
-}
-
-// AttachmentField contains information for an attachment field
-// An Attachment can contain multiple of these
-type AttachmentField struct {
-	Title string `json:"title"`
-	Value string `json:"value"`
-	Short bool   `json:"short"`
-}
-
-// Attachment contains all the information for an attachment
-type Attachment struct {
-	Fallback string `json:"fallback"`
-
-	Color string `json:"color,omitempty"`
-
-	Pretext string `json:"pretext,omitempty"`
-
-	AuthorName string `json:"author_name,omitempty"`
-	AuthorLink string `json:"author_link,omitempty"`
-	AuthorIcon string `json:"author_icon,omitempty"`
-
-	Title     string `json:"title,omitempty"`
-	TitleLink string `json:"title_link,omitempty"`
-
-	Text string `json:"text"`
-
-	ImageURL string `json:"image_url,omitempty"`
-	ThumbURL string `json:"thumb_url,omitempty"`
-
-	Fields []AttachmentField `json:"fields,omitempty"`
-
-	MarkdownIn []string `json:"mrkdwn_in,omitempty"`
 }
 
 // PostMessageParameters contains all the parameters necessary (including the optional ones) for a PostMessage() request
@@ -95,7 +62,7 @@ func NewPostMessageParameters() PostMessageParameters {
 
 func chatRequest(path string, values url.Values, debug bool) (*chatResponseFull, error) {
 	response := &chatResponseFull{}
-	err := parseResponse(path, values, response, debug)
+	err := post(path, values, response, debug)
 	if err != nil {
 		return nil, err
 	}
@@ -106,38 +73,34 @@ func chatRequest(path string, values url.Values, debug bool) (*chatResponseFull,
 }
 
 // DeleteMessage deletes a message in a channel
-func (api *Slack) DeleteMessage(channelId, messageTimestamp string) (string, string, error) {
+func (api *Client) DeleteMessage(channel, messageTimestamp string) (string, string, error) {
 	values := url.Values{
 		"token":   {api.config.token},
-		"channel": {channelId},
+		"channel": {channel},
 		"ts":      {messageTimestamp},
 	}
 	response, err := chatRequest("chat.delete", values, api.debug)
 	if err != nil {
 		return "", "", err
 	}
-	return response.ChannelId, response.Timestamp, nil
+	return response.Channel, response.Timestamp, nil
 }
 
 func escapeMessage(message string) string {
-	/*
-		& replaced with &amp;
-		< replaced with &lt;
-		> replaced with &gt;
-	*/
 	replacer := strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;")
 	return replacer.Replace(message)
 }
 
-// PostMessage sends a message to a channel
+// PostMessage sends a message to a channel.
 // Message is escaped by default according to https://api.slack.com/docs/formatting
-func (api *Slack) PostMessage(channelId string, text string, params PostMessageParameters) (channel string, timestamp string, err error) {
+// Use http://davestevens.github.io/slack-message-builder/ to help crafting your message.
+func (api *Client) PostMessage(channel, text string, params PostMessageParameters) (string, string, error) {
 	if params.EscapeText {
 		text = escapeMessage(text)
 	}
 	values := url.Values{
 		"token":   {api.config.token},
-		"channel": {channelId},
+		"channel": {channel},
 		"text":    {text},
 	}
 	if params.Username != DEFAULT_MESSAGE_USERNAME {
@@ -179,14 +142,14 @@ func (api *Slack) PostMessage(channelId string, text string, params PostMessageP
 	if err != nil {
 		return "", "", err
 	}
-	return response.ChannelId, response.Timestamp, nil
+	return response.Channel, response.Timestamp, nil
 }
 
 // UpdateMessage updates a message in a channel
-func (api *Slack) UpdateMessage(channelId, timestamp, text string) (string, string, string, error) {
+func (api *Client) UpdateMessage(channel, timestamp, text string) (string, string, string, error) {
 	values := url.Values{
 		"token":   {api.config.token},
-		"channel": {channelId},
+		"channel": {channel},
 		"text":    {escapeMessage(text)},
 		"ts":      {timestamp},
 	}
@@ -194,5 +157,5 @@ func (api *Slack) UpdateMessage(channelId, timestamp, text string) (string, stri
 	if err != nil {
 		return "", "", "", err
 	}
-	return response.ChannelId, response.Timestamp, response.Text, nil
+	return response.Channel, response.Timestamp, response.Text, nil
 }

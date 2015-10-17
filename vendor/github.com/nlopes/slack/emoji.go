@@ -11,12 +11,12 @@ type emojiResponseFull struct {
 }
 
 // GetEmoji retrieves all the emojis
-func (api *Slack) GetEmoji() (map[string]string, error) {
+func (api *Client) GetEmoji() (map[string]string, error) {
 	values := url.Values{
 		"token": {api.config.token},
 	}
 	response := &emojiResponseFull{}
-	err := parseResponse("emoji.list", values, response, api.debug)
+	err := post("emoji.list", values, response, api.debug)
 	if err != nil {
 		return nil, err
 	}

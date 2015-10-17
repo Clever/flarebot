@@ -9,7 +9,7 @@ import (
 
 const (
 	// Add here the defaults in the siten
-	DEFAULT_FILES_USERID  = ""
+	DEFAULT_FILES_USER    = ""
 	DEFAULT_FILES_TS_FROM = 0
 	DEFAULT_FILES_TS_TO   = -1
 	DEFAULT_FILES_TYPES   = "all"
@@ -17,18 +17,9 @@ const (
 	DEFAULT_FILES_PAGE    = 1
 )
 
-// Comment contains all the information relative to a comment
-type Comment struct {
-	Id        string   `json:"id"`
-	Timestamp JSONTime `json:"timestamp"`
-	UserId    string   `json:"user"`
-	Comment   string   `json:"comment"`
-	Created   JSONTime `json:"created,omitempty"`
-}
-
 // File contains all the information for a file
 type File struct {
-	Id        string   `json:"id"`
+	ID        string   `json:"id"`
 	Created   JSONTime `json:"created"`
 	Timestamp JSONTime `json:"timestamp"`
 
@@ -37,7 +28,7 @@ type File struct {
 	Mimetype   string `json:"mimetype"`
 	Filetype   string `json:"filetype"`
 	PrettyType string `json:"pretty_type"`
-	UserId     string `json:"user"`
+	User       string `json:"user"`
 
 	Mode         string `json:"mode"`
 	Editable     bool   `json:"editable"`
@@ -87,7 +78,7 @@ type FileUploadParameters struct {
 
 // GetFilesParameters contains all the parameters necessary (including the optional ones) for a GetFiles() request
 type GetFilesParameters struct {
-	UserId        string
+	User          string
 	TimestampFrom JSONTime
 	TimestampTo   JSONTime
 	Types         string
@@ -107,7 +98,7 @@ type fileResponseFull struct {
 // NewGetFilesParameters provides an instance of GetFilesParameters with all the sane default values set
 func NewGetFilesParameters() GetFilesParameters {
 	return GetFilesParameters{
-		UserId:        DEFAULT_FILES_USERID,
+		User:          DEFAULT_FILES_USER,
 		TimestampFrom: DEFAULT_FILES_TS_FROM,
 		TimestampTo:   DEFAULT_FILES_TS_TO,
 		Types:         DEFAULT_FILES_TYPES,
@@ -118,7 +109,7 @@ func NewGetFilesParameters() GetFilesParameters {
 
 func fileRequest(path string, values url.Values, debug bool) (*fileResponseFull, error) {
 	response := &fileResponseFull{}
-	err := parseResponse(path, values, response, debug)
+	err := post(path, values, response, debug)
 	if err != nil {
 		return nil, err
 	}
@@ -129,10 +120,10 @@ func fileRequest(path string, values url.Values, debug bool) (*fileResponseFull,
 }
 
 // GetFileInfo retrieves a file and related comments
-func (api *Slack) GetFileInfo(fileId string, count, page int) (*File, []Comment, *Paging, error) {
+func (api *Client) GetFileInfo(fileID string, count, page int) (*File, []Comment, *Paging, error) {
 	values := url.Values{
 		"token": {api.config.token},
-		"file":  {fileId},
+		"file":  {fileID},
 		"count": {strconv.Itoa(count)},
 		"page":  {strconv.Itoa(page)},
 	}
@@ -144,12 +135,12 @@ func (api *Slack) GetFileInfo(fileId string, count, page int) (*File, []Comment,
 }
 
 // GetFiles retrieves all files according to the parameters given
-func (api *Slack) GetFiles(params GetFilesParameters) ([]File, *Paging, error) {
+func (api *Client) GetFiles(params GetFilesParameters) ([]File, *Paging, error) {
 	values := url.Values{
 		"token": {api.config.token},
 	}
-	if params.UserId != DEFAULT_FILES_USERID {
-		values.Add("user", params.UserId)
+	if params.User != DEFAULT_FILES_USER {
+		values.Add("user", params.User)
 	}
 	// XXX: this is broken. fix it with a proper unix timestamp
 	if params.TimestampFrom != DEFAULT_FILES_TS_FROM {
@@ -175,7 +166,7 @@ func (api *Slack) GetFiles(params GetFilesParameters) ([]File, *Paging, error) {
 }
 
 // UploadFile uploads a file
-func (api *Slack) UploadFile(params FileUploadParameters) (file *File, err error) {
+func (api *Client) UploadFile(params FileUploadParameters) (file *File, err error) {
 	// Test if user token is valid. This helps because client.Do doesn't like this for some reason. XXX: More
 	// investigation needed, but for now this will do.
 	_, err = api.AuthTest()
@@ -203,9 +194,9 @@ func (api *Slack) UploadFile(params FileUploadParameters) (file *File, err error
 	}
 	if params.Content != "" {
 		values.Add("content", params.Content)
-		err = parseResponse("files.upload", values, response, api.debug)
+		err = post("files.upload", values, response, api.debug)
 	} else if params.File != "" {
-		err = parseResponseMultipart("files.upload", params.File, values, response, api.debug)
+		err = postWithMultipartResponse("files.upload", params.File, values, response, api.debug)
 	}
 	if err != nil {
 		return nil, err
@@ -217,10 +208,10 @@ func (api *Slack) UploadFile(params FileUploadParameters) (file *File, err error
 }
 
 // DeleteFile deletes a file
-func (api *Slack) DeleteFile(fileId string) error {
+func (api *Client) DeleteFile(fileID string) error {
 	values := url.Values{
 		"token": {api.config.token},
-		"file":  {fileId},
+		"file":  {fileID},
 	}
 	_, err := fileRequest("files.delete", values, api.debug)
 	if err != nil {

@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// XXX: Need to implement
+// UserPrefs needs to be implemented
 type UserPrefs struct {
 	// "highlight_words":"",
 	// "user_colors":"",
@@ -106,7 +106,7 @@ type UserPrefs struct {
 
 // UserDetails contains user details coming in the initial response from StartRTM
 type UserDetails struct {
-	Id             string    `json:"id"`
+	ID             string    `json:"id"`
 	Name           string    `json:"name"`
 	Created        JSONTime  `json:"created"`
 	ManualPresence string    `json:"manual_presence"`
@@ -118,15 +118,20 @@ type JSONTime int64
 
 // String converts the unix timestamp into a string
 func (t JSONTime) String() string {
-	tm := time.Unix(int64(t), 0)
+	tm := t.Time()
 	return fmt.Sprintf("\"%s\"", tm.Format("Mon Jan _2"))
+}
+
+// Time returns a `time.Time` representation of this value.
+func (t JSONTime) Time() time.Time {
+	return time.Unix(int64(t), 0)
 }
 
 // Team contains details about a team
 type Team struct {
-	Id     string `json:"id"`
+	ID     string `json:"id"`
 	Name   string `json:"name"`
-	Domain string `json:"name"`
+	Domain string `json:"domain"`
 }
 
 // Icons XXX: needs further investigation
@@ -136,16 +141,16 @@ type Icons struct {
 
 // Bot contains information about a bot
 type Bot struct {
-	Id      string `json:"id"`
+	ID      string `json:"id"`
 	Name    string `json:"name"`
 	Deleted bool   `json:"deleted"`
 	Icons   Icons  `json:"icons"`
 }
 
-// Info contains various details about Users, Channels, Bots and the authenticated user
-// It is returned by StartRTM
+// Info contains various details about Users, Channels, Bots and the authenticated user.
+// It is returned by StartRTM or included in the "ConnectedEvent" RTM event.
 type Info struct {
-	Url      string       `json:"url,omitempty"`
+	URL      string       `json:"url,omitempty"`
 	User     *UserDetails `json:"self,omitempty"`
 	Team     *Team        `json:"team,omitempty"`
 	Users    []User       `json:"users,omitempty"`
@@ -157,43 +162,43 @@ type Info struct {
 
 type infoResponseFull struct {
 	Info
-	SlackWSResponse
+	WebResponse
 }
 
-// GetBotById returns a bot given a bot id
-func (info Info) GetBotById(botId string) *Bot {
+// GetBotByID returns a bot given a bot id
+func (info Info) GetBotByID(botID string) *Bot {
 	for _, bot := range info.Bots {
-		if bot.Id == botId {
+		if bot.ID == botID {
 			return &bot
 		}
 	}
 	return nil
 }
 
-// GetUserById returns a user given a user id
-func (info Info) GetUserById(userId string) *User {
+// GetUserByID returns a user given a user id
+func (info Info) GetUserByID(userID string) *User {
 	for _, user := range info.Users {
-		if user.Id == userId {
+		if user.ID == userID {
 			return &user
 		}
 	}
 	return nil
 }
 
-// GetChannelById returns a channel given a channel id
-func (info Info) GetChannelById(channelId string) *Channel {
+// GetChannelByID returns a channel given a channel id
+func (info Info) GetChannelByID(channelID string) *Channel {
 	for _, channel := range info.Channels {
-		if channel.Id == channelId {
+		if channel.ID == channelID {
 			return &channel
 		}
 	}
 	return nil
 }
 
-// GetGroupById returns a group given a group id
-func (info Info) GetGroupById(groupId string) *Group {
+// GetGroupByID returns a group given a group id
+func (info Info) GetGroupByID(groupID string) *Group {
 	for _, group := range info.Groups {
-		if group.Id == groupId {
+		if group.ID == groupID {
 			return &group
 		}
 	}

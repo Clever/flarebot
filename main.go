@@ -1,21 +1,21 @@
 package main
 
 import (
-	"os"
+	"encoding/base64"
+	"encoding/gob"
 	"fmt"
+	"log"
+	"os"
 	"regexp"
 	"strconv"
-	"log"
-	"encoding/gob"
-	"encoding/base64"
-//	"encoding/json"
+	//	"encoding/json"
 	"bytes"
-	"net/http"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
-	"google.golang.org/api/googleapi/transport"
 	"google.golang.org/api/drive/v2"
+	"google.golang.org/api/googleapi/transport"
+	"net/http"
 )
 
 // the regexp for the fire a flare Slack message
@@ -31,10 +31,16 @@ type googleDoc struct {
 }
 
 func createJiraTicket(priority int, topic string) *jiraTicket {
-	// https://developer.atlassian.com/jiradev/jira-apis/jira-rest-apis/jira-rest-api-tutorials/jira-rest-api-example-create-issue
+	// POST /rest/api/2/issue
+	// https://docs.atlassian.com/jira/REST/latest/#api/2/issue-createIssue
+
+	request := &map[string]interface{}{}
+
+	fmt.Printf("%v", request)
+
 	return &jiraTicket{
 		Url: "http://example.com/foo",
-		Key: "FLARE-4242",
+		Key: "flare-test-4243",
 	}
 }
 
@@ -50,7 +56,7 @@ func decodeOAuthToken(tokenString string) *oauth2.Token {
 
 func createGoogleDoc(jiraTicketURL string, flareKey string, priority int, topic string) *googleDoc {
 	// https://github.com/google/google-api-go-client/blob/master/examples/drive.go#L33
-	
+
 	google_client_id := os.Getenv("GOOGLE_CLIENT_ID")
 	google_client_secret := os.Getenv("GOOGLE_CLIENT_SECRET")
 	google_flarebot_access_token := os.Getenv("GOOGLE_FLAREBOT_ACCESS_TOKEN")
@@ -58,10 +64,10 @@ func createGoogleDoc(jiraTicketURL string, flareKey string, priority int, topic 
 
 	// decode the token back into a token
 	token := decodeOAuthToken(google_flarebot_access_token)
-	
+
 	var config = &oauth2.Config{
-		ClientID:     google_client_id, 
-		ClientSecret: google_client_secret, 
+		ClientID:     google_client_id,
+		ClientSecret: google_client_secret,
 		Endpoint:     google.Endpoint,
 		Scopes:       []string{drive.DriveScope},
 	}
@@ -80,9 +86,9 @@ func createGoogleDoc(jiraTicketURL string, flareKey string, priority int, topic 
 	// copy the template doc to a new doc
 	file, err := service.Files.Copy(google_template_doc_id, &drive.File{Title: topic}).Do()
 	if err != nil {
-    fmt.Printf("An error occurred: %v\n", err)
+		fmt.Printf("An error occurred: %v\n", err)
 		return nil
-  }
+	}
 
 	// make it editable by the entire organization
 	permissions, err := service.Permissions.List(file.Id).Do()
@@ -103,7 +109,7 @@ func createGoogleDoc(jiraTicketURL string, flareKey string, priority int, topic 
 			}
 		}
 	}
-	
+
 	return &googleDoc{
 		Url: file.AlternateLink,
 	}
@@ -115,7 +121,7 @@ func createSlackChannel(client *Client, flareKey string) (string, error) {
 	if err != nil {
 		return "", err
 	} else {
-		return channel.Id, nil
+		return channel.ID, nil
 	}
 }
 
@@ -124,7 +130,6 @@ func main() {
 	domain := os.Getenv("SLACK_DOMAIN")
 	username := os.Getenv("SLACK_USERNAME")
 
-	fmt.Printf("TOKEN: %s\n", token.AccessToken);
 	client, err := NewClient(token.AccessToken, domain, username)
 	if err != nil {
 		panic(err)
@@ -140,28 +145,37 @@ func main() {
 			return
 		}
 
+		fmt.Printf("FROM: %v\n", msg)
+
 		// for now matches are indexed
 		priority, _ := strconv.Atoi(matches[1])
 		topic := matches[2]
-		
-		// ok it matches
-		msg.Respond("I'm a little flarebot that just understood you!")
 
-		fmt.Println(fmt.Sprintf("P%d - %s", priority, topic))
+		// ok it matches
+		client.Send("OK, let me get my matches...", msg.Channel)
 
 		ticket := createJiraTicket(priority, topic)
+
+		if ticket == nil {
+			panic("no JIRA ticket created")
+		}
+
 		doc := createGoogleDoc(ticket.Url, ticket.Key, priority, topic)
 
 		if doc == nil {
 			panic("No google doc created")
 		}
 
-		msg.Respond(fmt.Sprintf("Create a Google Doc for you: %s", doc.Url))
-		
+		// msg.Respond(fmt.Sprintf("Create a Google Doc for you: %s", doc.Url))
+
 		channelId, _ := createSlackChannel(client, ticket.Key)
 
-		// in the channel do things
-		client.Send(fmt.Sprintf("@channel: I've fired the Flare. Check out #%s", ticket.Key), channelId)
+		// set up the Flare room
+		client.Send(fmt.Sprintf("JIRA Ticket: %s", ticket.Url), channelId)
+		client.Send(fmt.Sprintf("Facts Docs: %s", doc.Url), channelId)
+
+		// announce the specific Flare room in the overall Flares room
+		client.Send(fmt.Sprintf("@channel: Flare fired. Please visit #%s", ticket.Key), msg.Channel)
 	})
 
 	panic(client.Run())
