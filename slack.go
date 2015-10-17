@@ -77,19 +77,16 @@ func (c *Client) handleMessage(msg *slack.MessageEvent) {
 
 func (c *Client) start() {
 	c.outgoing = make(chan slack.OutgoingMessage)
-	//chReceiver := make(chan slack.SlackEvent)
 
+	// parameters for all postings
 	messageParameters := slack.NewPostMessageParameters()
 	messageParameters.LinkNames = 1
 	messageParameters.AsUser = true
 
-	// go c.rtm.HandleIncomingEvents(chReceiver)
-	// go c.rtm.Keepalive(20 * time.Second)
 	go func(ws *slack.RTM, chSender chan slack.OutgoingMessage) {
 		for {
 			select {
 			case msg := <-chSender:
-				// FIXME: we need to use rtm.PostMessage if we want parameters that include parsing names
 				ws.PostMessage(msg.Channel, msg.Text, messageParameters)
 			}
 		}
@@ -108,6 +105,7 @@ func (c *Client) start() {
 				fmt.Printf("Error: %d - %s\n", error.Code, error.Msg)
 			case *slack.UserTypingEvent, *slack.PresenceChangeEvent, slack.LatencyReport:
 				// Do nothing
+				continue
 			case *slack.ConnectionErrorEvent:
 				error := msg.Data.(*slack.ConnectionErrorEvent)
 				fmt.Printf("Error: %v\n", error)

@@ -8,7 +8,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
-	//	"encoding/json"
+	"encoding/json"
 	"bytes"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
@@ -16,6 +16,8 @@ import (
 	"google.golang.org/api/drive/v2"
 	"google.golang.org/api/googleapi/transport"
 	"net/http"
+	"strings"
+	"io/ioutil"
 )
 
 // the regexp for the fire a flare Slack message
@@ -34,13 +36,50 @@ func createJiraTicket(priority int, topic string) *jiraTicket {
 	// POST /rest/api/2/issue
 	// https://docs.atlassian.com/jira/REST/latest/#api/2/issue-createIssue
 
-	request := &map[string]interface{}{}
+	project_id := os.Getenv("JIRA_PROJECT_ID")
+	priority_id := strings.Split(os.Getenv("JIRA_PRIORITIES"), ",")[priority]
+	issuetype_id := os.Getenv("JIRA_ISSUETYPE_ID")
+	jira_origin := os.Getenv("JIRA_ORIGIN")
 
-	fmt.Printf("%v", request)
+	// request JSON
+	request := &map[string]interface{}{
+		"fields" : &map[string]interface{}{
+			"project": &map[string]interface{} {
+				"id": project_id,
+			},
+			"issuetype": &map[string]interface{} {
+				"id": issuetype_id,
+			},
+			"summary": topic,
+			"priority": &map[string]interface{} {
+				"id": priority_id,
+			},
+		},
+	}
 
+	url := fmt.Sprintf("%s/rest/api/2/issue", jira_origin)
+	
+	jsonStr, _ := json.Marshal(request)
+	fmt.Printf("JIRA REQUEST %s\n", jsonStr)
+
+	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	req.Header.Add("Content-Type","application/json")
+	req.SetBasicAuth(os.Getenv("JIRA_USERNAME"), os.Getenv("JIRA_PASSWORD"))
+
+	client := &http.Client{}
+	resp, _ := client.Do(req)
+	defer resp.Body.Close()
+
+	body, _ := ioutil.ReadAll(resp.Body)
+
+	var response map[string]string
+	json.Unmarshal(body, &response)
+
+	fmt.Printf("RESULT: %v\n", response)
+	
 	return &jiraTicket{
-		Url: "http://example.com/foo",
-		Key: "flare-test-4243",
+		Url: fmt.Sprintf("%s/issues/%s", jira_origin, response["key"]),
+		Key: strings.ToLower(response["key"]),
 	}
 }
 
@@ -72,6 +111,7 @@ func createGoogleDoc(jiraTicketURL string, flareKey string, priority int, topic 
 		Scopes:       []string{drive.DriveScope},
 	}
 
+	// OAuth context with API key
 	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, &http.Client{
 		Transport: &transport.APIKey{Key: google_flarebot_access_token},
 	})
@@ -83,8 +123,13 @@ func createGoogleDoc(jiraTicketURL string, flareKey string, priority int, topic 
 		log.Fatalf("Unable to create Drive service: %v", err)
 	}
 
+	google_doc_title := fmt.Sprintf("%s: %s", flareKey, topic)
+	
 	// copy the template doc to a new doc
-	file, err := service.Files.Copy(google_template_doc_id, &drive.File{Title: topic}).Do()
+	file, err := service.Files.Copy(google_template_doc_id, &drive.File{
+		Title: google_doc_title,
+	}).Do()
+	
 	if err != nil {
 		fmt.Printf("An error occurred: %v\n", err)
 		return nil
@@ -135,17 +180,16 @@ func main() {
 		panic(err)
 	}
 
+	re := regexp.MustCompile(fireFlareCommandRegexp)
+	
 	client.Respond(".*", func(msg *Message, params [][]string) {
-		re := regexp.MustCompile(fireFlareCommandRegexp)
-
 		// doesn't match?
 		matches := re.FindStringSubmatch(msg.Text)
+
 		if len(matches) == 0 {
-			msg.Respond("I'm sorry Jim, I don't understand.")
+			msg.Respond("The only command I know is: fire a flare p0/p1/p2 <topic>")
 			return
 		}
-
-		fmt.Printf("FROM: %v\n", msg)
 
 		// for now matches are indexed
 		priority, _ := strconv.Atoi(matches[1])
@@ -165,8 +209,6 @@ func main() {
 		if doc == nil {
 			panic("No google doc created")
 		}
-
-		// msg.Respond(fmt.Sprintf("Create a Google Doc for you: %s", doc.Url))
 
 		channelId, _ := createSlackChannel(client, ticket.Key)
 
