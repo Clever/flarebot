@@ -6,7 +6,7 @@ import (
 	"sync"
 	//	"time"
 
-	"github.com/nlopes/slack"
+	"github.com/Clever/flarebot/Godeps/_workspace/src/github.com/nlopes/slack"
 )
 
 type Client struct {

@@ -1,23 +1,23 @@
 package main
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/gob"
+	"encoding/json"
 	"fmt"
+	"github.com/Clever/flarebot/Godeps/_workspace/src/golang.org/x/net/context"
+	"github.com/Clever/flarebot/Godeps/_workspace/src/golang.org/x/oauth2"
+	"github.com/Clever/flarebot/Godeps/_workspace/src/golang.org/x/oauth2/google"
+	"github.com/Clever/flarebot/Godeps/_workspace/src/google.golang.org/api/drive/v2"
+	"github.com/Clever/flarebot/Godeps/_workspace/src/google.golang.org/api/googleapi/transport"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"regexp"
 	"strconv"
-	"encoding/json"
-	"bytes"
-	"golang.org/x/net/context"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
-	"google.golang.org/api/drive/v2"
-	"google.golang.org/api/googleapi/transport"
-	"net/http"
 	"strings"
-	"io/ioutil"
 )
 
 // the regexp for the fire a flare Slack message
@@ -43,27 +43,27 @@ func createJiraTicket(priority int, topic string) *jiraTicket {
 
 	// request JSON
 	request := &map[string]interface{}{
-		"fields" : &map[string]interface{}{
-			"project": &map[string]interface{} {
+		"fields": &map[string]interface{}{
+			"project": &map[string]interface{}{
 				"id": project_id,
 			},
-			"issuetype": &map[string]interface{} {
+			"issuetype": &map[string]interface{}{
 				"id": issuetype_id,
 			},
 			"summary": topic,
-			"priority": &map[string]interface{} {
+			"priority": &map[string]interface{}{
 				"id": priority_id,
 			},
 		},
 	}
 
 	url := fmt.Sprintf("%s/rest/api/2/issue", jira_origin)
-	
+
 	jsonStr, _ := json.Marshal(request)
 	fmt.Printf("JIRA REQUEST %s\n", jsonStr)
 
 	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
-	req.Header.Add("Content-Type","application/json")
+	req.Header.Add("Content-Type", "application/json")
 	req.SetBasicAuth(os.Getenv("JIRA_USERNAME"), os.Getenv("JIRA_PASSWORD"))
 
 	client := &http.Client{}
@@ -76,7 +76,7 @@ func createJiraTicket(priority int, topic string) *jiraTicket {
 	json.Unmarshal(body, &response)
 
 	fmt.Printf("RESULT: %v\n", response)
-	
+
 	return &jiraTicket{
 		Url: fmt.Sprintf("%s/issues/%s", jira_origin, response["key"]),
 		Key: strings.ToLower(response["key"]),
@@ -124,12 +124,12 @@ func createGoogleDoc(jiraTicketURL string, flareKey string, priority int, topic 
 	}
 
 	google_doc_title := fmt.Sprintf("%s: %s", flareKey, topic)
-	
+
 	// copy the template doc to a new doc
 	file, err := service.Files.Copy(google_template_doc_id, &drive.File{
 		Title: google_doc_title,
 	}).Do()
-	
+
 	if err != nil {
 		fmt.Printf("An error occurred: %v\n", err)
 		return nil
@@ -181,7 +181,7 @@ func main() {
 	}
 
 	re := regexp.MustCompile(fireFlareCommandRegexp)
-	
+
 	client.Respond(".*", func(msg *Message, params [][]string) {
 		// doesn't match?
 		matches := re.FindStringSubmatch(msg.Text)

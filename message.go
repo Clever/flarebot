@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/nlopes/slack"
+	"github.com/Clever/flarebot/Godeps/_workspace/src/github.com/nlopes/slack"
 )
 
 type Message struct {
