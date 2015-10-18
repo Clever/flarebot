@@ -2,6 +2,10 @@
 
 Slack bot that assists in the creation of FLARE support documents.
 
+## Issues & Feature Requests
+
+Flarebot issues and feature requests should be added to this Github project's issues list.
+
 ## Configuration
 
 Flarebot is an OAuth client into Slack, into Google Docs, and an
