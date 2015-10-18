@@ -182,12 +182,22 @@ func main() {
 
 	re := regexp.MustCompile(fireFlareCommandRegexp)
 
+	expectedChannel := os.Getenv("SLACK_CHANNEL")
+
 	client.Respond(".*", func(msg *Message, params [][]string) {
+		// wrong channel?
+		if msg.Channel != expectedChannel {
+			client.Send("I only respond in the #flares channel.", msg.Channel)
+			return
+		}
+		
 		// doesn't match?
 		matches := re.FindStringSubmatch(msg.Text)
 
+		fmt.Println("channel: ", msg.Channel)
+
 		if len(matches) == 0 {
-			msg.Respond("The only command I know is: fire a flare p0/p1/p2 <topic>")
+			client.Send("The only command I know is: fire a flare p0/p1/p2 <topic>", msg.Channel)
 			return
 		}
 
@@ -196,7 +206,7 @@ func main() {
 		topic := matches[2]
 
 		// ok it matches
-		client.Send("OK, let me get my matches...", msg.Channel)
+		client.Send("OK, let me get my flaregun", msg.Channel)
 
 		ticket := createJiraTicket(priority, topic)
 
