@@ -18,6 +18,7 @@ environment variables are expected.
 * `SLACK_CLIENT_ID`: Slack OAuth App client ID
 * `SLACK_CLIENT_SECRET`: Slack OAuth App client secret
 * `SLACK_FLAREBOT_ACCESS_TOKEN`: Slack OAuth access token for the Flarebot user
+* `SLACK_CHANNEL`: the Channel ID where Flarebot should be listening
 
 ### Google
 
