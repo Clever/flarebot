@@ -21,7 +21,7 @@ import (
 )
 
 // the regexp for the fire a flare Slack message
-const fireFlareCommandRegexp string = "^.*: fire (?:a )?flare [pP]([012]) *(.*)"
+const fireFlareCommandRegexp string = "^.* fire (?:a )?flare [pP]([012]) *(.*)"
 
 type jiraTicket struct {
 	Url string
