@@ -6,11 +6,6 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
-	"golang.org/x/net/context"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
-	"google.golang.org/api/drive/v2"
-	"google.golang.org/api/googleapi/transport"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -18,10 +13,37 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"golang.org/x/net/context"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/drive/v2"
+	"google.golang.org/api/googleapi/transport"
 )
 
 // the regexp for the fire a flare Slack message
 const fireFlareCommandRegexp string = "^.* fire (?:a )?flare [pP]([012]) *(.*)"
+
+var (
+	jiraTicketNameRegex = regexp.MustCompile(`^flare-(\d+)$`)
+)
+
+// reformatSlackChannelName ensures that a ticket has preceding zeros in the numerical section
+// of the name.
+func reformatSlackChannelName(ticket string) string {
+	res := jiraTicketNameRegex.FindStringSubmatch(ticket)
+	if len(res) != 2 {
+		// no match found, just return the default name
+		return ticket
+	}
+
+	num, err := strconv.Atoi(res[1])
+	if err != nil {
+		log.Printf("Not able parse number from ticket, %s: %s", ticket, err)
+		return ticket
+	}
+	return fmt.Sprintf("flare-%03d", num)
+}
 
 type jiraTicket struct {
 	Url string
@@ -162,6 +184,7 @@ func createGoogleDoc(jiraTicketURL string, flareKey string, priority int, topic 
 
 // returns the slack Channel ID
 func createSlackChannel(client *Client, flareKey string) (string, error) {
+
 	channel, err := client.api.CreateChannel(flareKey)
 	if err != nil {
 		return "", err
@@ -190,7 +213,7 @@ func main() {
 			client.Send("I only respond in the #flares channel.", msg.Channel)
 			return
 		}
-		
+
 		// doesn't match?
 		matches := re.FindStringSubmatch(msg.Text)
 
@@ -220,7 +243,7 @@ func main() {
 			panic("No google doc created")
 		}
 
-		channelId, _ := createSlackChannel(client, ticket.Key)
+		channelId, _ := createSlackChannel(client, reformatSlackChannelName(ticket.Key))
 
 		// set up the Flare room
 		client.Send(fmt.Sprintf("JIRA Ticket: %s", ticket.Url), channelId)
