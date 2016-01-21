@@ -195,7 +195,7 @@ func main() {
 			client.Send("I only respond in the #flares channel.", msg.Channel)
 			return
 		}
-		
+
 		// doesn't match?
 		matches := re.FindStringSubmatch(msg.Text)
 
@@ -226,12 +226,14 @@ func main() {
 		}
 
 		channelId, _ := createSlackChannel(client, ticket.Key)
+		troubleshootingUrl := "https://github.com/Clever/alert-troubleshooting/blob/master/alerts/PagerDutyAlerts.md"
 
 		// set up the Flare room
 		client.Send(fmt.Sprintf("JIRA Ticket: %s", ticket.Url), channelId)
 		client.Send(fmt.Sprintf("Facts Docs: %s", doc.Url), channelId)
 		client.Send(fmt.Sprintf("Incident Lead Checklist: %s", incident_lead_checklist_url), channelId)
 		client.Send(fmt.Sprintf("Comms Lead Checklist: %s", comms_lead_checklist_url), channelId)
+		client.Send(fmt.Sprintf("PagerDuty Alert Troubleshooting: %s", troubleshootingUrl), channelId)
 
 		// announce the specific Flare room in the overall Flares room
 		client.Send(fmt.Sprintf("@channel: Flare fired. Please visit #%s", ticket.Key), msg.Channel)
