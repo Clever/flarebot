@@ -174,6 +174,7 @@ func main() {
 	// Links to checklists
 	incident_lead_checklist_url := os.Getenv("INCIDENT_LEAD_CHECKLIST_URL")
 	comms_lead_checklist_url := os.Getenv("COMMS_LEAD_CHECKLIST_URL")
+	troubleshootingUrl := os.Getenv("PAGERDUTY_TROUBLESHOOTING_URL")
 
 	// Slack connection params
 	token := decodeOAuthToken(os.Getenv("SLACK_FLAREBOT_ACCESS_TOKEN"))
@@ -226,7 +227,6 @@ func main() {
 		}
 
 		channelId, _ := createSlackChannel(client, ticket.Key)
-		troubleshootingUrl := "https://github.com/Clever/alert-troubleshooting/blob/master/alerts/PagerDutyAlerts.md"
 
 		// set up the Flare room
 		client.Send(fmt.Sprintf("JIRA Ticket: %s", ticket.Url), channelId)
