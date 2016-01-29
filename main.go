@@ -174,6 +174,7 @@ func main() {
 	// Links to checklists
 	incident_lead_checklist_url := os.Getenv("INCIDENT_LEAD_CHECKLIST_URL")
 	comms_lead_checklist_url := os.Getenv("COMMS_LEAD_CHECKLIST_URL")
+	troubleshootingUrl := os.Getenv("PAGERDUTY_TROUBLESHOOTING_URL")
 
 	// Slack connection params
 	token := decodeOAuthToken(os.Getenv("SLACK_FLAREBOT_ACCESS_TOKEN"))
@@ -195,7 +196,7 @@ func main() {
 			client.Send("I only respond in the #flares channel.", msg.Channel)
 			return
 		}
-		
+
 		// doesn't match?
 		matches := re.FindStringSubmatch(msg.Text)
 
@@ -232,6 +233,7 @@ func main() {
 		client.Send(fmt.Sprintf("Facts Docs: %s", doc.Url), channelId)
 		client.Send(fmt.Sprintf("Incident Lead Checklist: %s", incident_lead_checklist_url), channelId)
 		client.Send(fmt.Sprintf("Comms Lead Checklist: %s", comms_lead_checklist_url), channelId)
+		client.Send(fmt.Sprintf("PagerDuty Alert Troubleshooting: %s", troubleshootingUrl), channelId)
 
 		// announce the specific Flare room in the overall Flares room
 		client.Send(fmt.Sprintf("@channel: Flare fired. Please visit #%s", ticket.Key), msg.Channel)
