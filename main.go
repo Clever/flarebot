@@ -6,11 +6,6 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
-	"golang.org/x/net/context"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
-	"google.golang.org/api/drive/v2"
-	"google.golang.org/api/googleapi/transport"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -18,6 +13,12 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"golang.org/x/net/context"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/drive/v2"
+	"google.golang.org/api/googleapi/transport"
 )
 
 // the regexp for the fire a flare Slack message
@@ -171,10 +172,8 @@ func createSlackChannel(client *Client, flareKey string) (string, error) {
 }
 
 func main() {
-	// Links to checklists
-	incident_lead_checklist_url := os.Getenv("INCIDENT_LEAD_CHECKLIST_URL")
-	comms_lead_checklist_url := os.Getenv("COMMS_LEAD_CHECKLIST_URL")
-	troubleshootingUrl := os.Getenv("PAGERDUTY_TROUBLESHOOTING_URL")
+	// Link to flare resources
+	resources_url := os.Getenv("FLARE_RESOURCES_URL")
 
 	// Slack connection params
 	token := decodeOAuthToken(os.Getenv("SLACK_FLAREBOT_ACCESS_TOKEN"))
@@ -229,11 +228,9 @@ func main() {
 		channelId, _ := createSlackChannel(client, ticket.Key)
 
 		// set up the Flare room
-		client.Send(fmt.Sprintf("JIRA Ticket: %s", ticket.Url), channelId)
-		client.Send(fmt.Sprintf("Facts Docs: %s", doc.Url), channelId)
-		client.Send(fmt.Sprintf("Incident Lead Checklist: %s", incident_lead_checklist_url), channelId)
-		client.Send(fmt.Sprintf("Comms Lead Checklist: %s", comms_lead_checklist_url), channelId)
-		client.Send(fmt.Sprintf("PagerDuty Alert Troubleshooting: %s", troubleshootingUrl), channelId)
+		client.Send(fmt.Sprintf("JIRA ticket: %s", ticket.Url), channelId)
+		client.Send(fmt.Sprintf("Facts docs: %s", doc.Url), channelId)
+		client.Send(fmt.Sprintf("Flare resources: %s", resources_url), channelId)
 
 		// announce the specific Flare room in the overall Flares room
 		client.Send(fmt.Sprintf("@channel: Flare fired. Please visit #%s", ticket.Key), msg.Channel)
