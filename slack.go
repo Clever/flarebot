@@ -31,6 +31,15 @@ func (c *Client) Run() error {
 	return nil
 }
 
+func (c *Client) CreateChannel(name string) (*slack.Channel, error) {
+	channel, err := c.api.CreateChannel(name)
+	if err != nil {
+		return nil, err
+	} else {
+		return channel, nil
+	}	
+}
+
 func (c *Client) Hear(pattern string, fn func(*Message, [][]string)) {
 	h := &MessageHandler{pattern: regexp.MustCompile(pattern), fn: fn}
 	c.mHandler.Lock()

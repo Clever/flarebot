@@ -213,12 +213,12 @@ func main() {
 			panic("No google doc created")
 		}
 
-		channelId, _ := createSlackChannel(client, strings.ToLower(ticket.Key))
+		channel, _ := client.CreateChannel(strings.ToLower(ticket.Key))
 
 		// set up the Flare room
-		client.Send(fmt.Sprintf("JIRA ticket: %s", ticket.Url), channelId)
-		client.Send(fmt.Sprintf("Facts docs: %s", doc.Url), channelId)
-		client.Send(fmt.Sprintf("Flare resources: %s", resources_url), channelId)
+		client.Send(fmt.Sprintf("JIRA ticket: %s", ticket.Url), channel.ID)
+		client.Send(fmt.Sprintf("Facts docs: %s", doc.Url), channel.ID)
+		client.Send(fmt.Sprintf("Flare resources: %s", resources_url), channel.ID)
 
 		// announce the specific Flare room in the overall Flares room
 		client.Send(fmt.Sprintf("@channel: Flare fired. Please visit #%s", strings.ToLower(ticket.Key)), msg.Channel)
