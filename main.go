@@ -4,10 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/gob"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -20,6 +17,8 @@ import (
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/drive/v2"
 	"google.golang.org/api/googleapi/transport"
+
+	"github.com/Clever/flarebot/jira"
 )
 
 // the regexp for the fire a flare Slack message
@@ -28,146 +27,8 @@ const fireFlareCommandRegexp string = "^.* fire (?:a )?flare [pP]([012]) *(.*)"
 // a regexp for testing without doing anything
 const testCommandRegexp string = "^.* test *(.*)"
 
-type jiraTicket struct {
-	Url string
-	Key string
-	ProjectId string
-	ProjectKey string
-	AssigneeEmail string
-}
-
 type googleDoc struct {
 	Url string
-}
-
-type jiraUser struct {
-	Key string
-	Name string
-	Email string
-}
-
-// perform a JIRA API request
-// url is the full path, not including scheme and hostname, e.g. "/api/2/foo/bar?x=y"
-// body is the body of the request, which is only meant for a POST
-// if body is nil, it's going to be a GET, if not it's a POST.
-// body is a struct that will be JSON serialized, and the return value is a JSON-deserialized struct.
-func doJiraRequest(url string, body *map[string]interface{}, expectArray bool) (map[string]interface{}, error) {
-	jira_origin := os.Getenv("JIRA_ORIGIN")
-	fullUrl := fmt.Sprintf("%s%s", jira_origin, url)	
-	
-	var req *http.Request
-	
-	if body != nil {
-		jsonStr, _ := json.Marshal(body)
-		fmt.Printf("JIRA REQUEST %s\n", jsonStr)
-
-		req, _ = http.NewRequest("POST", fullUrl, bytes.NewBuffer(jsonStr))
-		req.Header.Add("Content-Type", "application/json")
-	} else {
-		fmt.Printf("JIRA REQUEST %s\n", fullUrl)
-		req, _ = http.NewRequest("GET", fullUrl, nil)
-	}
-	
-	req.SetBasicAuth(os.Getenv("JIRA_USERNAME"), os.Getenv("JIRA_PASSWORD"))
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-
-	if err != nil {
-		fmt.Printf("got an error: %s\n", err)
-		return nil, err
-	}
-	
-	defer resp.Body.Close()
-
-	responseBody, _ := ioutil.ReadAll(resp.Body)
-
-	if expectArray {
-		var response []map[string]interface{}
-		json.Unmarshal(responseBody, &response)
-		return response[0], nil
-	} else {
-		var response map[string]interface{}
-		json.Unmarshal(responseBody, &response)
-		return response, nil
-	}
-}
-
-func getJiraUserByEmail(email string) (*jiraUser, error) {
-	// get the JIRA user. The JIRA query uses username as param even though it's an email address (yeah. thanks JIRA.)
-	userResponse, err := doJiraRequest(fmt.Sprintf("/rest/api/2/user/search?username=%s", email), nil, true)
-
-	if err != nil {
-		return nil, err
-	}
-	
-	return &jiraUser{
-		Key: userResponse["key"].(string),
-		Name: userResponse["name"].(string),
-		Email: userResponse["emailAddress"].(string),
-	}, nil
-}
-
-func getJiraTicket(key string) (*jiraTicket, error) {
-	ticketResponse, err := doJiraRequest(fmt.Sprintf("/rest/api/2/issue/%s", key), nil, false)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if ticketResponse["fields"] == nil {
-		return nil, errors.New("no such ticket")
-	}
-	
-	var fields map[string]interface{} = ticketResponse["fields"].(map[string]interface{})
-	var project map[string]interface{} = fields["project"].(map[string]interface{})
-	var assignee map[string]interface{} = fields["assignee"].(map[string]interface{})
-	
-	return &jiraTicket{
-		Key: ticketResponse["key"].(string),
-		ProjectId: project["id"].(string),
-		ProjectKey: project["key"].(string),
-		AssigneeEmail: assignee["emailAddress"].(string),
-	}, nil
-}
-
-func createJiraTicket(priority int, topic string, assigneeEmail string) *jiraTicket {
-	// POST /rest/api/2/issue
-	// https://docs.atlassian.com/jira/REST/latest/#api/2/issue-createIssue
-
-	project_id := os.Getenv("JIRA_PROJECT_ID")
-	priority_id := strings.Split(os.Getenv("JIRA_PRIORITIES"), ",")[priority]
-	issuetype_id := os.Getenv("JIRA_ISSUETYPE_ID")
-	jira_origin := os.Getenv("JIRA_ORIGIN")	
-
-	user, _ := getJiraUserByEmail(assigneeEmail)
-	
-	// request JSON
-	request := &map[string]interface{}{
-		"fields": &map[string]interface{}{
-			"project": &map[string]interface{}{
-				"id": project_id,
-			},
-			"issuetype": &map[string]interface{}{
-				"id": issuetype_id,
-			},
-			"assignee": &map[string]interface{}{
-				"name": user.Name,
-			},
-			"summary": topic,
-			"priority": &map[string]interface{}{
-				"id": priority_id,
-			},
-		},
-	}
-
-	url := "/rest/api/2/issue"
-	response, _ := doJiraRequest(url, request, false)
-
-	return &jiraTicket{
-		Url: fmt.Sprintf("%s/issues/%s", jira_origin, response["key"]),
-		Key: strings.ToLower(response["key"].(string)),
-	}
 }
 
 func decodeOAuthToken(tokenString string) *oauth2.Token {
@@ -262,6 +123,16 @@ func getSlackUserInfo(client *Client) (map[string]interface{}, error) {
 }
 
 func main() {
+	// JIRA service
+	var JiraServer jira.JiraService = &jira.JiraServer{
+		Origin: os.Getenv("JIRA_ORIGIN"),
+		Username: os.Getenv("JIRA_USERNAME"),
+		Password: os.Getenv("JIRA_PASSWORD"),
+		ProjectID: os.Getenv("JIRA_PROJECT_ID"),
+		IssueTypeID: os.Getenv("JIRA_ISSUETYPE_ID"),
+		PriorityIDs: strings.Split(os.Getenv("JIRA_PRIORITIES"), ","),
+	}
+	
 	// Link to flare resources
 	resources_url := os.Getenv("FLARE_RESOURCES_URL")
 
@@ -302,7 +173,7 @@ func main() {
 				author, _ := msg.AuthorUser()
 				client.Send(fmt.Sprintf("I see you're using the test command. Excellent: %s", author.Profile.Email), msg.Channel)
 
-				user, _ := getJiraUserByEmail(author.Profile.Email)
+				user, _ := JiraServer.GetUserByEmail(author.Profile.Email)
 
 				client.Send(fmt.Sprintf("JIRA username is %s", user.Name), msg.Channel)
 
@@ -310,7 +181,7 @@ func main() {
 
 				client.Send(fmt.Sprintf("this channel is %s", channel.Name), msg.Channel)
 
-				ticket, _ := getJiraTicket("flare-165")
+				ticket, _ := JiraServer.GetTicketByKey("flare-165")
 
 				fmt.Println(ticket)
 				
@@ -329,7 +200,8 @@ func main() {
 		client.Send("OK, let me get my flaregun", msg.Channel)
 
 		author, _ := msg.AuthorUser()
-		ticket := createJiraTicket(priority, topic, author.Profile.Email)
+		assigneeUser, _ := JiraServer.GetUserByEmail(author.Profile.Email)
+		ticket, _ := JiraServer.CreateTicket(priority, topic, assigneeUser)
 
 		if ticket == nil {
 			panic("no JIRA ticket created")
@@ -341,7 +213,7 @@ func main() {
 			panic("No google doc created")
 		}
 
-		channelId, _ := createSlackChannel(client, ticket.Key)
+		channelId, _ := createSlackChannel(client, strings.ToLower(ticket.Key))
 
 		// set up the Flare room
 		client.Send(fmt.Sprintf("JIRA ticket: %s", ticket.Url), channelId)
@@ -349,7 +221,7 @@ func main() {
 		client.Send(fmt.Sprintf("Flare resources: %s", resources_url), channelId)
 
 		// announce the specific Flare room in the overall Flares room
-		client.Send(fmt.Sprintf("@channel: Flare fired. Please visit #%s", ticket.Key), msg.Channel)
+		client.Send(fmt.Sprintf("@channel: Flare fired. Please visit #%s", strings.ToLower(ticket.Key)), msg.Channel)
 	})
 
 	panic(client.Run())
