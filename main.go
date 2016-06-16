@@ -208,14 +208,22 @@ func main() {
 		channel, _ := client.api.GetChannelInfo(msg.Channel)
 
 		// then the ticket that matches
-		_, err := JiraServer.GetTicketByKey(channel.Name)
+		ticket, err := JiraServer.GetTicketByKey(channel.Name)
 
+		// TODO: check that the ticket is in the right project
+		
+		
 		if err != nil {
 			client.Send("I can only assign incident leads in Flare-specific rooms", msg.Channel)
 			return
 		}
 
+		author, _ := msg.AuthorUser()
+		assigneeUser, _ := JiraServer.GetUserByEmail(author.Profile.Email)
+
 		client.Send("oh captain my captain, I am assigning you now....", msg.Channel)
+
+		err = JiraServer.AssignTicketToUser(ticket, assigneeUser)
 	})
 
 	panic(client.Run())
