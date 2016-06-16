@@ -13,7 +13,7 @@ import (
 type Ticket struct {
 	Url string
 	Key string
-	ProjectId string
+	ProjectID string
 	ProjectKey string
 	AssigneeEmail string
 }
@@ -107,13 +107,22 @@ func (server *JiraServer) GetTicketByKey(key string) (*Ticket, error) {
 	
 	var fields map[string]interface{} = response["fields"].(map[string]interface{})
 	var project map[string]interface{} = fields["project"].(map[string]interface{})
-	var assignee map[string]interface{} = fields["assignee"].(map[string]interface{})
+	
+	var assignee map[string]interface{}
+	var assigneeEmail string
+
+	if assignee == nil {
+		assignee = nil
+	} else {
+		assignee = fields["assignee"].(map[string]interface{})
+		assigneeEmail = assignee["emailAddress"].(string)
+	}
 	
 	return &Ticket{
 		Key: response["key"].(string),
-		ProjectId: project["id"].(string),
+		ProjectID: project["id"].(string),
 		ProjectKey: project["key"].(string),
-		AssigneeEmail: assignee["emailAddress"].(string),
+		AssigneeEmail: assigneeEmail,
 	}, nil	
 }
 

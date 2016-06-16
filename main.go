@@ -116,7 +116,7 @@ func createGoogleDoc(jiraTicketURL string, flareKey string, priority int, topic 
 
 func main() {
 	// JIRA service
-	var JiraServer jira.JiraService = &jira.JiraServer{
+	var JiraServer *jira.JiraServer = &jira.JiraServer{
 		Origin: os.Getenv("JIRA_ORIGIN"),
 		Username: os.Getenv("JIRA_USERNAME"),
 		Password: os.Getenv("JIRA_PASSWORD"),
@@ -210,20 +210,19 @@ func main() {
 		// then the ticket that matches
 		ticket, err := JiraServer.GetTicketByKey(channel.Name)
 
-		// TODO: check that the ticket is in the right project
-		
-		
-		if err != nil {
-			client.Send("I can only assign incident leads in Flare-specific rooms", msg.Channel)
+		if err != nil || ticket.ProjectID != JiraServer.ProjectID {
+			client.Send("Sorry, I can only assign incident leads in a channel that corresponds to a Flare issue in JIRA.", msg.Channel)
 			return
 		}
 
 		author, _ := msg.AuthorUser()
 		assigneeUser, _ := JiraServer.GetUserByEmail(author.Profile.Email)
 
-		client.Send("oh captain my captain, I am assigning you now....", msg.Channel)
+		client.Send("working on assigning incident lead....", msg.Channel)
 
 		err = JiraServer.AssignTicketToUser(ticket, assigneeUser)
+
+		client.Send(fmt.Sprintf("Oh Captain My Captain! @%s is now incident lead. Please confirm all actions with them.", author.Name), msg.Channel)
 	})
 
 	panic(client.Run())
