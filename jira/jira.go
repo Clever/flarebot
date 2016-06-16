@@ -28,6 +28,7 @@ type JiraService interface {
 	GetUserByEmail(email string) (*User, error)
 	GetTicketByKey(key string) (*Ticket, error)
 	CreateTicket(priority int, topic string, assignee *User) (*Ticket, error)
+	AssignTicketToUser(ticket *Ticket, user *User) error
 }
 
 // tuned for a single project
@@ -40,17 +41,17 @@ type JiraServer struct {
 	PriorityIDs []string
 }
 
-func (server *JiraServer) DoRequest(path string, body *map[string]interface{}, expectArray bool) (map[string]interface{}, error) {
+func (server *JiraServer) DoRequest(method string, path string, body *map[string]interface{}, expectArray bool) (map[string]interface{}, error) {
 	fullURL := fmt.Sprintf("%s%s", server.Origin, path)
 
 	var req *http.Request
-	
-	if body == nil {
-		req, _ = http.NewRequest("GET", fullURL, nil)
-	} else {
+
+	if body != nil {
 		jsonStr, _ := json.Marshal(body)
-		req, _ = http.NewRequest("POST", fullURL, bytes.NewBuffer(jsonStr))
+		req, _ = http.NewRequest(method, fullURL, bytes.NewBuffer(jsonStr))
 		req.Header.Add("Content-Type", "application/json")
+	} else {
+		req, _ = http.NewRequest(method, fullURL, nil)
 	}
 
 	req.SetBasicAuth(server.Username, server.Password)
@@ -80,7 +81,7 @@ func (server *JiraServer) DoRequest(path string, body *map[string]interface{}, e
 
 
 func (server *JiraServer) GetUserByEmail(email string) (*User, error) {
-	response, err := server.DoRequest(fmt.Sprintf("/rest/api/2/user/search?username=%s", email), nil, true)
+	response, err := server.DoRequest("GET", fmt.Sprintf("/rest/api/2/user/search?username=%s", email), nil, true)
 
 	if err != nil {
 		return nil, err
@@ -94,7 +95,7 @@ func (server *JiraServer) GetUserByEmail(email string) (*User, error) {
 }
 
 func (server *JiraServer) GetTicketByKey(key string) (*Ticket, error) {
-	response, err := server.DoRequest(fmt.Sprintf("/rest/api/2/issue/%s", key), nil, false)
+	response, err := server.DoRequest("GET", fmt.Sprintf("/rest/api/2/issue/%s", key), nil, false)
 
 	if err != nil {
 		return nil, err
@@ -137,7 +138,7 @@ func (server *JiraServer) CreateTicket(priority int, topic string, assignee *Use
 	}
 
 	url := "/rest/api/2/issue"
-	response, _ := server.DoRequest(url, request, false)
+	response, _ := server.DoRequest("POST", url, request, false)
 
 	return &Ticket{
 		Url: fmt.Sprintf("%s/issues/%s", server.Origin, response["key"]),
@@ -146,3 +147,19 @@ func (server *JiraServer) CreateTicket(priority int, topic string, assignee *Use
 }
 
 
+func (server *JiraServer) AssignTicketToUser(ticket *Ticket, user *User) error {
+	// request JSON
+	request := &map[string]interface{}{
+		"fields": &map[string]interface{}{
+			"assignee": &map[string]interface{}{
+				"name": user.Name,
+			},
+		},
+	}
+
+	url := "/rest/api/2/issue/" + ticket.Key
+	_, err := server.DoRequest("PUT", url, request, false)
+
+	// will be nil if no error
+	return err
+}
