@@ -20,11 +20,18 @@ import (
 	"github.com/Clever/flarebot/jira"
 )
 
-// the regexp for the fire a flare Slack message
+//
+// COMMANDS
+//
+
+// fire a flare
 const fireFlareCommandRegexp string = "[fF]ire (?:a )?[fF]lare [pP]([012]) *(.*)"
 
-// a regexp for testing without doing anything
+// testing
 const testCommandRegexp string = "test *(.*)"
+
+// I am incident lead
+const takingLeadCommandRegexp string = "[iI] am incident lead"
 
 type googleDoc struct {
 	Url string
@@ -191,6 +198,24 @@ func main() {
 
 		// announce the specific Flare room in the overall Flares room
 		client.Send(fmt.Sprintf("@channel: Flare fired. Please visit #%s", strings.ToLower(ticket.Key)), msg.Channel)
+	})
+
+	client.Respond(takingLeadCommandRegexp, func(msg *Message, params [][]string) {
+		// taking the lead should only happen in a particular Flare room
+		// we figure this out by querying jira to see if a ticket matches
+		
+		// first more info about the channel
+		channel, _ := client.api.GetChannelInfo(msg.Channel)
+
+		// then the ticket that matches
+		_, err := JiraServer.GetTicketByKey(channel.Name)
+
+		if err != nil {
+			client.Send("I can only assign incident leads in Flare-specific rooms", msg.Channel)
+			return
+		}
+
+		client.Send("oh captain my captain, I am assigning you now....", msg.Channel)
 	})
 
 	panic(client.Run())
