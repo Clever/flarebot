@@ -108,20 +108,6 @@ func createGoogleDoc(jiraTicketURL string, flareKey string, priority int, topic 
 	}
 }
 
-// returns the slack Channel ID
-func createSlackChannel(client *Client, flareKey string) (string, error) {
-	channel, err := client.api.CreateChannel(flareKey)
-	if err != nil {
-		return "", err
-	} else {
-		return channel.ID, nil
-	}
-}
-
-func getSlackUserInfo(client *Client) (map[string]interface{}, error) {
-	return nil, nil
-}
-
 func main() {
 	// JIRA service
 	var JiraServer jira.JiraService = &jira.JiraServer{
