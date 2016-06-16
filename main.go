@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/gob"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -30,6 +31,9 @@ const testCommandRegexp string = "^.* test *(.*)"
 type jiraTicket struct {
 	Url string
 	Key string
+	ProjectId string
+	ProjectKey string
+	AssigneeEmail string
 }
 
 type googleDoc struct {
@@ -101,6 +105,29 @@ func getJiraUserByEmail(email string) (*jiraUser, error) {
 		Key: userResponse["key"].(string),
 		Name: userResponse["name"].(string),
 		Email: userResponse["emailAddress"].(string),
+	}, nil
+}
+
+func getJiraTicket(key string) (*jiraTicket, error) {
+	ticketResponse, err := doJiraRequest(fmt.Sprintf("/rest/api/2/issue/%s", key), nil, false)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if ticketResponse["fields"] == nil {
+		return nil, errors.New("no such ticket")
+	}
+	
+	var fields map[string]interface{} = ticketResponse["fields"].(map[string]interface{})
+	var project map[string]interface{} = fields["project"].(map[string]interface{})
+	var assignee map[string]interface{} = fields["assignee"].(map[string]interface{})
+	
+	return &jiraTicket{
+		Key: ticketResponse["key"].(string),
+		ProjectId: project["id"].(string),
+		ProjectKey: project["key"].(string),
+		AssigneeEmail: assignee["emailAddress"].(string),
 	}, nil
 }
 
@@ -275,10 +302,17 @@ func main() {
 				author, _ := msg.AuthorUser()
 				client.Send(fmt.Sprintf("I see you're using the test command. Excellent: %s", author.Profile.Email), msg.Channel)
 
-				userResponse, _ := doJiraRequest(fmt.Sprintf("/rest/api/2/user/search?username=%s", author.Profile.Email), nil, true)
+				user, _ := getJiraUserByEmail(author.Profile.Email)
 
-				fmt.Println(userResponse)
-				client.Send(fmt.Sprintf("JIRA username is %s", userResponse["name"].(string)), msg.Channel)
+				client.Send(fmt.Sprintf("JIRA username is %s", user.Name), msg.Channel)
+
+				channel, _ := client.api.GetChannelInfo(msg.Channel)
+
+				client.Send(fmt.Sprintf("this channel is %s", channel.Name), msg.Channel)
+
+				ticket, _ := getJiraTicket("flare-165")
+
+				fmt.Println(ticket)
 				
 				return
 			}

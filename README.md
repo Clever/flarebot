@@ -57,15 +57,16 @@ environment variables are expected:
 
 In #flare-4242, @flarebot will:
 * set the topic
-* post a link to the JIRA ticket it created
+* post a link to the JIRA ticket it created, assigning the reporter.
 * post a link to the Facts Google Doc it created
+* post a link to the Flare Resources page.
 
 ## Future Features (Maybe)
 
 In the specific channel:
 
 ```
-@flarebot: incident lead is @z
+@flarebot: I am incident lead
 OK, got that
 
 @flarebot: comms lead is @ben
@@ -87,6 +88,21 @@ development quite a bit harder, so this isn't worthwhile for now.
 
 Both Google and Slack APIs require full users, not just a Slack bot
 user for example, to do the things we want to do.
+
+## Tech Design
+
+Ideally, the Flarebot process is stateless, looking up state in JIRA
+and Slack. This is relatively easy for interactions in the main Flare
+channel, which is stable and can be referenced by a config
+parameter. It gets a little bit harder for:
+
+* having Flarebot know when to respond in single-Flare-specific channels
+* accumulating state during a Flare and transferring it to a Google doc.
+
+For the first problem, the approach we'll take is:
+
+* ensure that flare channels are named the same as JIRA ticket id.
+* if Flarebot receives a command it recognizes, it will check the channel name against JIRA and ensure it is a ticket in the Flares Project.
 
 # Deployment
 
