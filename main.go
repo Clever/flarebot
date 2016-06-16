@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -22,10 +21,10 @@ import (
 )
 
 // the regexp for the fire a flare Slack message
-const fireFlareCommandRegexp string = "^.* fire (?:a )?flare [pP]([012]) *(.*)"
+const fireFlareCommandRegexp string = "[fF]ire (?:a )?[fF]lare [pP]([012]) *(.*)"
 
 // a regexp for testing without doing anything
-const testCommandRegexp string = "^.* test *(.*)"
+const testCommandRegexp string = "test *(.*)"
 
 type googleDoc struct {
 	Url string
@@ -132,13 +131,30 @@ func main() {
 		panic(err)
 	}
 
-	// regular expressions
-	re := regexp.MustCompile(fireFlareCommandRegexp)
-	reTest := regexp.MustCompile(testCommandRegexp)
-
 	expectedChannel := os.Getenv("SLACK_CHANNEL")
 
-	client.Respond(".*", func(msg *Message, params [][]string) {
+	client.Respond(testCommandRegexp, func(msg *Message, params[][]string) {
+		author, _ := msg.AuthorUser()
+		client.Send(fmt.Sprintf("I see you're using the test command. Excellent: %s", author.Profile.Email), msg.Channel)
+
+		if len(params[0]) > 1 {
+			client.Send(fmt.Sprintf("you told me: %s", params[0][1]), msg.Channel)
+		}
+		
+		user, _ := JiraServer.GetUserByEmail(author.Profile.Email)
+		
+		client.Send(fmt.Sprintf("JIRA username is %s", user.Name), msg.Channel)
+		
+		channel, _ := client.api.GetChannelInfo(msg.Channel)
+		
+		client.Send(fmt.Sprintf("this channel is %s", channel.Name), msg.Channel)
+		
+		ticket, _ := JiraServer.GetTicketByKey("flare-165")
+		
+		fmt.Println(ticket)
+	})
+	
+	client.Respond(fireFlareCommandRegexp, func(msg *Message, params [][]string) {
 		// wrong channel?
 		if msg.Channel != expectedChannel {
 			// removing this because it doesn't really happen and it makes testing harder.
@@ -146,44 +162,11 @@ func main() {
 			return
 		}
 
-		// doesn't match?
-		matches := re.FindStringSubmatch(msg.Text)
-
-		fmt.Println("channel: ", msg.Channel)
-
-		if len(matches) == 0 {
-			// matches test?
-			testMatches := reTest.FindStringSubmatch(msg.Text)
-			
-			if len(testMatches) > 0 {
-				author, _ := msg.AuthorUser()
-				client.Send(fmt.Sprintf("I see you're using the test command. Excellent: %s", author.Profile.Email), msg.Channel)
-
-				user, _ := JiraServer.GetUserByEmail(author.Profile.Email)
-
-				client.Send(fmt.Sprintf("JIRA username is %s", user.Name), msg.Channel)
-
-				channel, _ := client.api.GetChannelInfo(msg.Channel)
-
-				client.Send(fmt.Sprintf("this channel is %s", channel.Name), msg.Channel)
-
-				ticket, _ := JiraServer.GetTicketByKey("flare-165")
-
-				fmt.Println(ticket)
-				
-				return
-			}
-
-			client.Send("The only command I know is: fire a flare p0/p1/p2 <topic>", msg.Channel)
-			return
-		}
+		client.Send("OK, let me get my flaregun", msg.Channel)
 
 		// for now matches are indexed
-		priority, _ := strconv.Atoi(matches[1])
-		topic := matches[2]
-
-		// ok it matches
-		client.Send("OK, let me get my flaregun", msg.Channel)
+		priority, _ := strconv.Atoi(params[0][1])
+		topic := params[0][2]
 
 		author, _ := msg.AuthorUser()
 		assigneeUser, _ := JiraServer.GetUserByEmail(author.Profile.Email)

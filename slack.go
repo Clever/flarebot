@@ -68,19 +68,20 @@ func (c *Client) Send(msg, channelId string) {
 func (c *Client) handleMessage(msg *slack.MessageEvent) {
 	m := messageEventToMessage(msg, c.api, c.Send)
 
-	matches := []*MessageHandler{}
+	var theMatch *MessageHandler
 	fmt.Println()
 
 	c.mHandler.RLock()
 	for _, h := range c.handlers {
 		if h.Match(m) {
-			matches = append(matches, h)
+			theMatch = h
+			break
 		}
 	}
 	c.mHandler.RUnlock()
 
-	for _, h := range matches {
-		h.Handle(m)
+	if theMatch != nil {
+		theMatch.Handle(m)
 	}
 }
 
