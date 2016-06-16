@@ -17,11 +17,20 @@ type Message struct {
 }
 
 func (m *Message) Author() (string, error) {
-	user, err := m.api.GetUserInfo(m.AuthorId)
+	user, err := m.AuthorUser()
 	if err != nil {
 		return "", err
 	}
 	return user.Name, nil
+}
+
+func (m *Message) AuthorUser() (*slack.User, error) {
+	user, err := m.api.GetUserInfo(m.AuthorId)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
 
 func (m *Message) Respond(msg string) {
