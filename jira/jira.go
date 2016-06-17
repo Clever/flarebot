@@ -1,27 +1,27 @@
 package jira
 
 import (
-	"net/http"
-	"fmt"
-	"errors"
 	"bytes"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
 	"reflect"
 
 	"io/ioutil"
 )
 
 type Ticket struct {
-	Url string
-	Key string
-	ProjectID string
-	ProjectKey string
+	Url           string
+	Key           string
+	ProjectID     string
+	ProjectKey    string
 	AssigneeEmail string
 }
 
 type User struct {
-	Key string
-	Name string
+	Key   string
+	Name  string
 	Email string
 }
 
@@ -35,10 +35,10 @@ type JiraService interface {
 
 // tuned for a single project
 type JiraServer struct {
-	Origin string
-	Username string
-	Password string
-	ProjectID string
+	Origin      string
+	Username    string
+	Password    string
+	ProjectID   string
 	IssueTypeID string
 	PriorityIDs []string
 }
@@ -66,7 +66,7 @@ func (server *JiraServer) DoRequest(method string, path string, body *map[string
 		fmt.Printf("got an error: %s\n", err)
 		return nil, err
 	}
-	
+
 	defer resp.Body.Close()
 
 	responseBody, _ := ioutil.ReadAll(resp.Body)
@@ -74,7 +74,7 @@ func (server *JiraServer) DoRequest(method string, path string, body *map[string
 	if len(responseBody) == 0 {
 		return make([]map[string]interface{}, 0), nil
 	}
-	
+
 	// always an array
 	var resultInterface interface{}
 	json.Unmarshal(responseBody, &resultInterface)
@@ -92,11 +92,11 @@ func (server *JiraServer) DoRequest(method string, path string, body *map[string
 		}
 	}
 
-	return result,nil
+	return result, nil
 }
 
 func (server *JiraServer) GetTicketURL(ticketKey string) string {
-	return fmt.Sprintf("%s/issues/%s", server.Origin, ticketKey)	
+	return fmt.Sprintf("%s/issues/%s", server.Origin, ticketKey)
 }
 
 func (server *JiraServer) GetUserByEmail(email string) (*User, error) {
@@ -107,10 +107,10 @@ func (server *JiraServer) GetUserByEmail(email string) (*User, error) {
 	}
 
 	response := responseArray[0]
-	
+
 	return &User{
-		Key: response["key"].(string),
-		Name: response["name"].(string),
+		Key:   response["key"].(string),
+		Name:  response["name"].(string),
 		Email: response["emailAddress"].(string),
 	}, nil
 }
@@ -127,10 +127,10 @@ func (server *JiraServer) GetTicketByKey(key string) (*Ticket, error) {
 	if response["fields"] == nil {
 		return nil, errors.New("no such ticket")
 	}
-	
+
 	var fields map[string]interface{} = response["fields"].(map[string]interface{})
 	var project map[string]interface{} = fields["project"].(map[string]interface{})
-	
+
 	var assignee map[string]interface{}
 	var assigneeEmail string
 
@@ -143,12 +143,12 @@ func (server *JiraServer) GetTicketByKey(key string) (*Ticket, error) {
 
 	ticketKey := response["key"].(string)
 	return &Ticket{
-		Key: ticketKey,
-		Url: server.GetTicketURL(ticketKey),
-		ProjectID: project["id"].(string),
-		ProjectKey: project["key"].(string),
+		Key:           ticketKey,
+		Url:           server.GetTicketURL(ticketKey),
+		ProjectID:     project["id"].(string),
+		ProjectKey:    project["key"].(string),
 		AssigneeEmail: assigneeEmail,
-	}, nil	
+	}, nil
 }
 
 func (server *JiraServer) CreateTicket(priority int, topic string, assignee *User) (*Ticket, error) {
@@ -202,16 +202,15 @@ func (server *JiraServer) AssignTicketToUser(ticket *Ticket, user *User) error {
 	return server.UpdateTicket(ticket, request)
 }
 
-
-func (server *JiraServer)	DoTicketTransition(ticket *Ticket, transitionName string) error {
+func (server *JiraServer) DoTicketTransition(ticket *Ticket, transitionName string) error {
 	// get the transitions that are allowed and find the right one.
 	transitionsURL := fmt.Sprintf("/rest/api/2/issue/%s/transitions", ticket.Key)
-	transitionsArray, _ := server.DoRequest("GET", transitionsURL , nil)
+	transitionsArray, _ := server.DoRequest("GET", transitionsURL, nil)
 
-	transitions:= transitionsArray[0]["transitions"].([]interface{})
+	transitions := transitionsArray[0]["transitions"].([]interface{})
 
 	var transitionID string
-	
+
 	// find the right transition
 	for _, v := range transitions {
 		oneTransition := v.(map[string]interface{})
@@ -224,7 +223,7 @@ func (server *JiraServer)	DoTicketTransition(ticket *Ticket, transitionName stri
 	if transitionID == "" {
 		return errors.New("no transition named '" + transitionName + "'")
 	}
-	
+
 	// request JSON
 	request := &map[string]interface{}{
 		"transition": &map[string]interface{}{

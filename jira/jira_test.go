@@ -1,10 +1,10 @@
 package jira_test
 
 import (
-//	"fmt"
-	"testing"
+	//	"fmt"
 	"net/http"
-	
+	"testing"
+
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
 
@@ -34,27 +34,27 @@ var mockTransitionsContent = `{"expand":"transitions","transitions":[{"id":"161"
 
 func CreateTestJiraServer() jira.JiraService {
 	return &jira.JiraServer{
-		Origin: mockOrigin,
-		Username: mockUsername,
-		Password: mockPassword,
-		ProjectID: mockProjectID,
+		Origin:      mockOrigin,
+		Username:    mockUsername,
+		Password:    mockPassword,
+		ProjectID:   mockProjectID,
 		IssueTypeID: mockIssueTypeID,
 		PriorityIDs: mockPriorityIDs,
 	}
 }
 
-func TestGetUserByEmail (t *testing.T) {
+func TestGetUserByEmail(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
 	jiraServiceCalled := false
-	
-	httpmock.RegisterResponder("GET", mockOrigin + "/rest/api/2/user/search",
+
+	httpmock.RegisterResponder("GET", mockOrigin+"/rest/api/2/user/search",
 		func(req *http.Request) (*http.Response, error) {
 			jiraServiceCalled = true
 
 			// TODO: add more checks that the call includes the right parameters
-			
+
 			return httpmock.NewStringResponse(200, `[{"self":"https://foobar.atlassian.net/rest/api/2/user?username=alice.smith","key":"alice.smith","name":"alice.smith","emailAddress":"alice.smith@example.com","displayName":"Alice Smith","active":true,"timeZone":"America/Los_Angeles","locale":"en_US"}]`), nil
 		},
 	)
@@ -71,13 +71,13 @@ func TestGetUserByEmail (t *testing.T) {
 	assert.Equal(t, theUser.Email, "alice.smith@example.com")
 }
 
-func TestGetTicketByKey (t *testing.T) {
+func TestGetTicketByKey(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
 	jiraServiceCalled := false
-	
-	httpmock.RegisterResponder("GET", mockOrigin + "/rest/api/2/issue/" + mockIssueID,
+
+	httpmock.RegisterResponder("GET", mockOrigin+"/rest/api/2/issue/"+mockIssueID,
 		func(req *http.Request) (*http.Response, error) {
 			jiraServiceCalled = true
 
@@ -97,13 +97,13 @@ func TestGetTicketByKey (t *testing.T) {
 	}
 }
 
-func TestCreateTicket (t *testing.T) {
+func TestCreateTicket(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
 	jiraServiceCalled := false
-	
-	httpmock.RegisterResponder("POST", mockOrigin + "/rest/api/2/issue",
+
+	httpmock.RegisterResponder("POST", mockOrigin+"/rest/api/2/issue",
 		func(req *http.Request) (*http.Response, error) {
 			jiraServiceCalled = true
 
@@ -114,7 +114,7 @@ func TestCreateTicket (t *testing.T) {
 	testServer := CreateTestJiraServer()
 
 	theTicket, err := testServer.CreateTicket(0, "It's a problem", &jira.User{
-		Name: "alice.smith",
+		Name:  "alice.smith",
 		Email: "alice.smith@example.com",
 	})
 
@@ -123,7 +123,7 @@ func TestCreateTicket (t *testing.T) {
 	assert.NoError(t, err)
 	if err == nil {
 		assert.Equal(t, theTicket.Key, mockIssueID)
-	}	
+	}
 }
 
 func TestAssignTicketToUser(t *testing.T) {
@@ -132,7 +132,7 @@ func TestAssignTicketToUser(t *testing.T) {
 
 	jiraServiceCalled := false
 
-	httpmock.RegisterResponder("PUT", mockOrigin + "/rest/api/2/issue/MOCK-ISSUE-ID",
+	httpmock.RegisterResponder("PUT", mockOrigin+"/rest/api/2/issue/MOCK-ISSUE-ID",
 		func(req *http.Request) (*http.Response, error) {
 			jiraServiceCalled = true
 
@@ -142,13 +142,13 @@ func TestAssignTicketToUser(t *testing.T) {
 	testServer := CreateTestJiraServer()
 
 	err := testServer.AssignTicketToUser(&jira.Ticket{
-		Url: "https://mock.atlassian.net/issues/MOCK-ISSUE-ID",
-		Key: "MOCK-ISSUE-ID",
-		ProjectID: "MOCK-PROJECT-ID",
+		Url:        "https://mock.atlassian.net/issues/MOCK-ISSUE-ID",
+		Key:        "MOCK-ISSUE-ID",
+		ProjectID:  "MOCK-PROJECT-ID",
 		ProjectKey: "MOCK-PROJECT-KEY",
 	}, &jira.User{
-		Key: "alice.smith",
-		Name: "alice.smith",
+		Key:   "alice.smith",
+		Name:  "alice.smith",
 		Email: "alice.smith@example.com",
 	})
 
@@ -164,14 +164,14 @@ func TestDoTicketTransition(t *testing.T) {
 	jiraServiceCalled := false
 
 	transitionsURL := "/rest/api/2/issue/MOCK-ISSUE-ID/transitions"
-	
+
 	// mock returning the transitions
-	httpmock.RegisterResponder("GET", mockOrigin + transitionsURL,
+	httpmock.RegisterResponder("GET", mockOrigin+transitionsURL,
 		func(req *http.Request) (*http.Response, error) {
 			return httpmock.NewStringResponse(200, mockTransitionsContent), nil
 		})
-	
-	httpmock.RegisterResponder("POST", mockOrigin + transitionsURL,
+
+	httpmock.RegisterResponder("POST", mockOrigin+transitionsURL,
 		func(req *http.Request) (*http.Response, error) {
 			jiraServiceCalled = true
 
@@ -182,9 +182,9 @@ func TestDoTicketTransition(t *testing.T) {
 	testServer := CreateTestJiraServer()
 
 	err := testServer.DoTicketTransition(&jira.Ticket{
-		Url: "https://mock.atlassian.net/issues/MOCK-ISSUE-ID",
-		Key: "MOCK-ISSUE-ID",
-		ProjectID: "MOCK-PROJECT-ID",
+		Url:        "https://mock.atlassian.net/issues/MOCK-ISSUE-ID",
+		Key:        "MOCK-ISSUE-ID",
+		ProjectID:  "MOCK-PROJECT-ID",
 		ProjectKey: "MOCK-PROJECT-KEY",
 	}, "Mitigate")
 

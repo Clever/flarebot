@@ -121,28 +121,28 @@ func createGoogleDoc(jiraTicketURL string, flareKey string, priority int, topic 
 func GetTicketFromCurrentChannel(client *Client, JiraServer *jira.JiraServer, channelID string) (*jira.Ticket, error) {
 	// first more info about the channel
 	channel, _ := client.api.GetChannelInfo(channelID)
-	
+
 	// then the ticket that matches
 	ticket, err := JiraServer.GetTicketByKey(channel.Name)
-	
+
 	if err != nil || ticket.ProjectID != JiraServer.ProjectID {
 		return nil, errors.New("no ticket for this channel")
 	}
 
 	return ticket, nil
-}	
+}
 
 func main() {
 	// JIRA service
 	var JiraServer *jira.JiraServer = &jira.JiraServer{
-		Origin: os.Getenv("JIRA_ORIGIN"),
-		Username: os.Getenv("JIRA_USERNAME"),
-		Password: os.Getenv("JIRA_PASSWORD"),
-		ProjectID: os.Getenv("JIRA_PROJECT_ID"),
+		Origin:      os.Getenv("JIRA_ORIGIN"),
+		Username:    os.Getenv("JIRA_USERNAME"),
+		Password:    os.Getenv("JIRA_PASSWORD"),
+		ProjectID:   os.Getenv("JIRA_PROJECT_ID"),
 		IssueTypeID: os.Getenv("JIRA_ISSUETYPE_ID"),
 		PriorityIDs: strings.Split(os.Getenv("JIRA_PRIORITIES"), ","),
 	}
-	
+
 	// Link to flare resources
 	resources_url := os.Getenv("FLARE_RESOURCES_URL")
 
@@ -158,27 +158,27 @@ func main() {
 
 	expectedChannel := os.Getenv("SLACK_CHANNEL")
 
-	client.Respond(testCommandRegexp, func(msg *Message, params[][]string) {
+	client.Respond(testCommandRegexp, func(msg *Message, params [][]string) {
 		author, _ := msg.AuthorUser()
 		client.Send(fmt.Sprintf("I see you're using the test command. Excellent: %s", author.Profile.Email), msg.Channel)
 
 		if len(params[0]) > 1 {
 			client.Send(fmt.Sprintf("you told me: %s", params[0][1]), msg.Channel)
 		}
-		
+
 		user, _ := JiraServer.GetUserByEmail(author.Profile.Email)
-		
+
 		client.Send(fmt.Sprintf("JIRA username is %s", user.Name), msg.Channel)
-		
+
 		channel, _ := client.api.GetChannelInfo(msg.Channel)
-		
+
 		client.Send(fmt.Sprintf("this channel is %s", channel.Name), msg.Channel)
-		
+
 		ticket, _ := JiraServer.GetTicketByKey("flare-165")
-		
+
 		fmt.Println(ticket)
 	})
-	
+
 	client.Respond(fireFlareCommandRegexp, func(msg *Message, params [][]string) {
 		// wrong channel?
 		if msg.Channel != expectedChannel {
@@ -220,7 +220,7 @@ func main() {
 
 	client.Respond(takingLeadCommandRegexp, func(msg *Message, params [][]string) {
 		ticket, err := GetTicketFromCurrentChannel(client, JiraServer, msg.Channel)
-		
+
 		if err != nil {
 			client.Send("Sorry, I can only assign incident leads in a channel that corresponds to a Flare issue in JIRA.", msg.Channel)
 			return
@@ -238,7 +238,7 @@ func main() {
 
 	client.Respond(flareMitigatedCommandRegexp, func(msg *Message, params [][]string) {
 		ticket, err := GetTicketFromCurrentChannel(client, JiraServer, msg.Channel)
-		
+
 		if err != nil {
 			client.Send("Sorry, I can only assign incident leads in a channel that corresponds to a Flare issue in JIRA.", msg.Channel)
 			return
@@ -251,7 +251,7 @@ func main() {
 		if err == nil {
 			client.Send("... and the Flare was mitigated, and there was much rejoicing throughout the land.", msg.Channel)
 		} else {
-			client.Send("... couldn't do it :( The JIRA ticket might not be in the right state. Check it: " + ticket.Url, msg.Channel)
+			client.Send("... couldn't do it :( The JIRA ticket might not be in the right state. Check it: "+ticket.Url, msg.Channel)
 		}
 	})
 
