@@ -1,24 +1,19 @@
 package main
 
 import (
-	"bytes"
+	"errors"
 	"encoding/base64"
 	"encoding/gob"
-	"errors"
+	"bytes"
 	"fmt"
-	"log"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
 
-	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
-	"google.golang.org/api/drive/v2"
-	"google.golang.org/api/googleapi/transport"
 
 	"github.com/Clever/flarebot/jira"
+	"github.com/Clever/flarebot/googledocs"
 )
 
 //
@@ -37,87 +32,6 @@ const takingLeadCommandRegexp string = "[iI] am incident lead"
 // flare mitigated
 const flareMitigatedCommandRegexp string = "[Ff]lare (is )?mitigated"
 
-type googleDoc struct {
-	Url string
-}
-
-func decodeOAuthToken(tokenString string) *oauth2.Token {
-	tokenBytes, _ := base64.StdEncoding.DecodeString(tokenString)
-	tokenBytesBuffer := bytes.NewBuffer(tokenBytes)
-	dec := gob.NewDecoder(tokenBytesBuffer)
-	token := new(oauth2.Token)
-	dec.Decode(token)
-
-	return token
-}
-
-func createGoogleDoc(jiraTicketURL string, flareKey string, priority int, topic string) *googleDoc {
-	// https://github.com/google/google-api-go-client/blob/master/examples/drive.go#L33
-
-	google_client_id := os.Getenv("GOOGLE_CLIENT_ID")
-	google_client_secret := os.Getenv("GOOGLE_CLIENT_SECRET")
-	google_flarebot_access_token := os.Getenv("GOOGLE_FLAREBOT_ACCESS_TOKEN")
-	google_template_doc_id := os.Getenv("GOOGLE_TEMPLATE_DOC_ID")
-
-	// decode the token back into a token
-	token := decodeOAuthToken(google_flarebot_access_token)
-
-	var config = &oauth2.Config{
-		ClientID:     google_client_id,
-		ClientSecret: google_client_secret,
-		Endpoint:     google.Endpoint,
-		Scopes:       []string{drive.DriveScope},
-	}
-
-	// OAuth context with API key
-	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, &http.Client{
-		Transport: &transport.APIKey{Key: google_flarebot_access_token},
-	})
-
-	// instantiate the Google Drive client
-	oauthClient := config.Client(ctx, token)
-	service, err := drive.New(oauthClient)
-	if err != nil {
-		log.Fatalf("Unable to create Drive service: %v", err)
-	}
-
-	google_doc_title := fmt.Sprintf("%s: %s", flareKey, topic)
-
-	// copy the template doc to a new doc
-	file, err := service.Files.Copy(google_template_doc_id, &drive.File{
-		Title: google_doc_title,
-	}).Do()
-
-	if err != nil {
-		fmt.Printf("An error occurred: %v\n", err)
-		return nil
-	}
-
-	// make it editable by the entire organization
-	permissions, err := service.Permissions.List(file.Id).Do()
-	if err != nil {
-		fmt.Printf("An error occurred: %v\n", err)
-		return nil
-	}
-
-	// look for the domain permission and update it to "Writer"
-	for _, perm := range permissions.Items {
-		if perm.Type == "domain" {
-			fmt.Println("found the permission")
-			fmt.Println(perm)
-			perm.Role = "writer"
-			_, err = service.Permissions.Update(file.Id, perm.Id, perm).Do()
-			if err != nil {
-				fmt.Printf("error in permission: %v\n", err)
-			}
-		}
-	}
-
-	return &googleDoc{
-		Url: file.AlternateLink,
-	}
-}
-
 func GetTicketFromCurrentChannel(client *Client, JiraServer *jira.JiraServer, channelID string) (*jira.Ticket, error) {
 	// first more info about the channel
 	channel, _ := client.api.GetChannelInfo(channelID)
@@ -132,6 +46,16 @@ func GetTicketFromCurrentChannel(client *Client, JiraServer *jira.JiraServer, ch
 	return ticket, nil
 }
 
+func decodeOAuthToken(tokenString string) *oauth2.Token {
+	tokenBytes, _ := base64.StdEncoding.DecodeString(tokenString)
+	tokenBytesBuffer := bytes.NewBuffer(tokenBytes)
+	dec := gob.NewDecoder(tokenBytesBuffer)
+	token := new(oauth2.Token)
+	dec.Decode(token)
+
+	return token
+}
+
 func main() {
 	// JIRA service
 	var JiraServer *jira.JiraServer = &jira.JiraServer{
@@ -143,6 +67,14 @@ func main() {
 		PriorityIDs: strings.Split(os.Getenv("JIRA_PRIORITIES"), ","),
 	}
 
+	// Google Docs service
+	GoogleDocsServer, err := googledocs.NewGoogleDocsServer(
+		os.Getenv("GOOGLE_CLIENT_ID"),
+		os.Getenv("GOOGLE_CLIENT_SECRET"),
+		decodeOAuthToken(os.Getenv("GOOGLE_FLAREBOT_ACCESS_TOKEN")),
+		os.Getenv("GOOGLE_TEMPLATE_DOC_ID"),
+	)
+	
 	// Link to flare resources
 	resources_url := os.Getenv("FLARE_RESOURCES_URL")
 
@@ -201,9 +133,10 @@ func main() {
 			panic("no JIRA ticket created")
 		}
 
-		doc := createGoogleDoc(ticket.Url(), ticket.Key, priority, topic)
+		docTitle := fmt.Sprintf("%s: %s", ticket.Key, topic)
+		doc, err := GoogleDocsServer.CreateFromTemplate(docTitle)
 
-		if doc == nil {
+		if err != nil {
 			panic("No google doc created")
 		}
 
@@ -211,7 +144,7 @@ func main() {
 
 		// set up the Flare room
 		client.Send(fmt.Sprintf("JIRA ticket: %s", ticket.Url()), channel.ID)
-		client.Send(fmt.Sprintf("Facts docs: %s", doc.Url), channel.ID)
+		client.Send(fmt.Sprintf("Facts docs: %s", doc.File.AlternateLink), channel.ID)
 		client.Send(fmt.Sprintf("Flare resources: %s", resources_url), channel.ID)
 
 		// announce the specific Flare room in the overall Flares room

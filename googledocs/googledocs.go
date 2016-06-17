@@ -1,11 +1,8 @@
 // https://github.com/google/google-api-go-client/blob/master/examples/drive.go#L33
 
-package google
+package googledocs
 
 import (
-	"bytes"
-	"encoding/base64"
-	"encoding/gob"
 	"errors"
 
 	"golang.org/x/net/context"
@@ -32,19 +29,7 @@ type GoogleDocsServer struct {
 }
 
 
-func decodeOAuthToken(tokenString string) *oauth2.Token {
-	tokenBytes, _ := base64.StdEncoding.DecodeString(tokenString)
-	tokenBytesBuffer := bytes.NewBuffer(tokenBytes)
-	dec := gob.NewDecoder(tokenBytesBuffer)
-	token := new(oauth2.Token)
-	dec.Decode(token)
-
-	return token
-}
-
-func NewGoogleDocsServer(clientID string, clientSecret string, accessToken string, templateDocID string) (*GoogleDocsServer, error) {
-	token := decodeOAuthToken(accessToken)
-
+func NewGoogleDocsServer(clientID string, clientSecret string, accessToken *oauth2.Token, templateDocID string) (*GoogleDocsServer, error) {
 	var config = &oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
@@ -53,7 +38,7 @@ func NewGoogleDocsServer(clientID string, clientSecret string, accessToken strin
 	}
 
 	// instantiate the Google Drive client
-	oauthClient := config.Client(context.Background(), token)
+	oauthClient := config.Client(context.Background(), accessToken)
 	service, err := drive.New(oauthClient)
 
 	if err != nil {
@@ -63,7 +48,7 @@ func NewGoogleDocsServer(clientID string, clientSecret string, accessToken strin
 	return &GoogleDocsServer{
 		ClientID: clientID,
 		ClientSecret: clientSecret,
-		AccessToken: token,
+		AccessToken: accessToken,
 		Service: service,
 		TemplateDocID: templateDocID,
 	}, nil
