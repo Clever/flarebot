@@ -44,7 +44,7 @@ type JiraServer struct {
 }
 
 // always return an array of objects, oftentimes just one
-func (server *JiraServer) DoRequest(method string, path string, body *map[string]interface{}) ([]map[string]interface{}, error) {
+func (server *JiraServer) DoRequest(method string, path string, body map[string]interface{}) ([]map[string]interface{}, error) {
 	fullURL := fmt.Sprintf("%s%s", server.Origin, path)
 
 	var req *http.Request
@@ -153,7 +153,7 @@ func (server *JiraServer) GetTicketByKey(key string) (*Ticket, error) {
 
 func (server *JiraServer) CreateTicket(priority int, topic string, assignee *User) (*Ticket, error) {
 	// request JSON
-	request := &map[string]interface{}{
+	request := map[string]interface{}{
 		"fields": &map[string]interface{}{
 			"project": &map[string]interface{}{
 				"id": server.ProjectID,
@@ -181,7 +181,7 @@ func (server *JiraServer) CreateTicket(priority int, topic string, assignee *Use
 	}, nil
 }
 
-func (server *JiraServer) UpdateTicket(ticket *Ticket, request *map[string]interface{}) error {
+func (server *JiraServer) UpdateTicket(ticket *Ticket, request map[string]interface{}) error {
 	url := "/rest/api/2/issue/" + ticket.Key
 	_, err := server.DoRequest("PUT", url, request)
 
@@ -191,7 +191,7 @@ func (server *JiraServer) UpdateTicket(ticket *Ticket, request *map[string]inter
 
 func (server *JiraServer) AssignTicketToUser(ticket *Ticket, user *User) error {
 	// request JSON
-	request := &map[string]interface{}{
+	request := map[string]interface{}{
 		"fields": &map[string]interface{}{
 			"assignee": &map[string]interface{}{
 				"name": user.Name,
@@ -225,7 +225,7 @@ func (server *JiraServer) DoTicketTransition(ticket *Ticket, transitionName stri
 	}
 
 	// request JSON
-	request := &map[string]interface{}{
+	request := map[string]interface{}{
 		"transition": &map[string]interface{}{
 			"id": transitionID,
 		},
