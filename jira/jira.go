@@ -95,7 +95,7 @@ func (server *JiraServer) DoRequest(method string, path string, body map[string]
 	return result, nil
 }
 
-func (server *JiraServer) GetTicketURL(ticketKey string) string {
+func (server *JiraServer) TicketURL(ticketKey string) string {
 	return fmt.Sprintf("%s/issues/%s", server.Origin, ticketKey)
 }
 
@@ -144,7 +144,7 @@ func (server *JiraServer) GetTicketByKey(key string) (*Ticket, error) {
 	ticketKey := response["key"].(string)
 	return &Ticket{
 		Key:           ticketKey,
-		Url:           server.GetTicketURL(ticketKey),
+		Url:           server.TicketURL(ticketKey),
 		ProjectID:     project["id"].(string),
 		ProjectKey:    project["key"].(string),
 		AssigneeEmail: assigneeEmail,
@@ -176,7 +176,7 @@ func (server *JiraServer) CreateTicket(priority int, topic string, assignee *Use
 	response := responseArray[0]
 
 	return &Ticket{
-		Url: server.GetTicketURL(response["key"].(string)),
+		Url: server.TicketURL(response["key"].(string)),
 		Key: response["key"].(string),
 	}, nil
 }
