@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/gob"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -32,6 +33,9 @@ const testCommandRegexp string = "test *(.*)"
 
 // I am incident lead
 const takingLeadCommandRegexp string = "[iI] am incident lead"
+
+// flare mitigated
+const flareMitigatedCommandRegexp string = "[Ff]lare (is )?mitigated"
 
 type googleDoc struct {
 	Url string
@@ -113,6 +117,20 @@ func createGoogleDoc(jiraTicketURL string, flareKey string, priority int, topic 
 		Url: file.AlternateLink,
 	}
 }
+
+func GetTicketFromCurrentChannel(client *Client, JiraServer *jira.JiraServer, channelID string) (*jira.Ticket, error) {
+	// first more info about the channel
+	channel, _ := client.api.GetChannelInfo(channelID)
+	
+	// then the ticket that matches
+	ticket, err := JiraServer.GetTicketByKey(channel.Name)
+	
+	if err != nil || ticket.ProjectID != JiraServer.ProjectID {
+		return nil, errors.New("no ticket for this channel")
+	}
+
+	return ticket, nil
+}	
 
 func main() {
 	// JIRA service
@@ -201,16 +219,9 @@ func main() {
 	})
 
 	client.Respond(takingLeadCommandRegexp, func(msg *Message, params [][]string) {
-		// taking the lead should only happen in a particular Flare room
-		// we figure this out by querying jira to see if a ticket matches
+		ticket, err := GetTicketFromCurrentChannel(client, JiraServer, msg.Channel)
 		
-		// first more info about the channel
-		channel, _ := client.api.GetChannelInfo(msg.Channel)
-
-		// then the ticket that matches
-		ticket, err := JiraServer.GetTicketByKey(channel.Name)
-
-		if err != nil || ticket.ProjectID != JiraServer.ProjectID {
+		if err != nil {
 			client.Send("Sorry, I can only assign incident leads in a channel that corresponds to a Flare issue in JIRA.", msg.Channel)
 			return
 		}
@@ -223,6 +234,25 @@ func main() {
 		err = JiraServer.AssignTicketToUser(ticket, assigneeUser)
 
 		client.Send(fmt.Sprintf("Oh Captain My Captain! @%s is now incident lead. Please confirm all actions with them.", author.Name), msg.Channel)
+	})
+
+	client.Respond(flareMitigatedCommandRegexp, func(msg *Message, params [][]string) {
+		ticket, err := GetTicketFromCurrentChannel(client, JiraServer, msg.Channel)
+		
+		if err != nil {
+			client.Send("Sorry, I can only assign incident leads in a channel that corresponds to a Flare issue in JIRA.", msg.Channel)
+			return
+		}
+
+		client.Send("setting JIRA ticket to mitigated....", msg.Channel)
+
+		err = JiraServer.DoTicketTransition(ticket, "Mitigate")
+
+		if err == nil {
+			client.Send("... and the Flare was mitigated, and there was much rejoicing throughout the land.", msg.Channel)
+		} else {
+			client.Send("... couldn't do it :( The JIRA ticket might not be in the right state. Check it: " + ticket.Url, msg.Channel)
+		}
 	})
 
 	panic(client.Run())

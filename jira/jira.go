@@ -6,6 +6,7 @@ import (
 	"errors"
 	"bytes"
 	"encoding/json"
+	"reflect"
 
 	"io/ioutil"
 )
@@ -29,6 +30,7 @@ type JiraService interface {
 	GetTicketByKey(key string) (*Ticket, error)
 	CreateTicket(priority int, topic string, assignee *User) (*Ticket, error)
 	AssignTicketToUser(ticket *Ticket, user *User) error
+	DoTicketTransition(ticket *Ticket, transitionName string) error
 }
 
 // tuned for a single project
@@ -41,7 +43,8 @@ type JiraServer struct {
 	PriorityIDs []string
 }
 
-func (server *JiraServer) DoRequest(method string, path string, body *map[string]interface{}, expectArray bool) (map[string]interface{}, error) {
+// always return an array of objects, oftentimes just one
+func (server *JiraServer) DoRequest(method string, path string, body *map[string]interface{}) ([]map[string]interface{}, error) {
 	fullURL := fmt.Sprintf("%s%s", server.Origin, path)
 
 	var req *http.Request
@@ -68,24 +71,42 @@ func (server *JiraServer) DoRequest(method string, path string, body *map[string
 
 	responseBody, _ := ioutil.ReadAll(resp.Body)
 
-	if expectArray {
-		var response []map[string]interface{}
-		json.Unmarshal(responseBody, &response)
-		return response[0], nil
-	} else {
-		var response map[string]interface{}
-		json.Unmarshal(responseBody, &response)
-		return response, nil
+	if len(responseBody) == 0 {
+		return make([]map[string]interface{}, 0), nil
 	}
+	
+	// always an array
+	var resultInterface interface{}
+	json.Unmarshal(responseBody, &resultInterface)
+
+	// this is ugly, but what are you gonna do when you don't know what to expect from JIRA?
+	// introspect to figure out if it's an array or a map, and then do the right thing,
+	// including deep typecasting to get an array of maps if needed.
+	var result []map[string]interface{}
+	if reflect.TypeOf(resultInterface).Kind() == reflect.Map {
+		result = append(result, resultInterface.(map[string]interface{}))
+	} else {
+		resultWithInterfaces := resultInterface.([]interface{})
+		for _, v := range resultWithInterfaces {
+			result = append(result, v.(map[string]interface{}))
+		}
+	}
+
+	return result,nil
 }
 
+func (server *JiraServer) GetTicketURL(ticketKey string) string {
+	return fmt.Sprintf("%s/issues/%s", server.Origin, ticketKey)	
+}
 
 func (server *JiraServer) GetUserByEmail(email string) (*User, error) {
-	response, err := server.DoRequest("GET", fmt.Sprintf("/rest/api/2/user/search?username=%s", email), nil, true)
+	responseArray, err := server.DoRequest("GET", fmt.Sprintf("/rest/api/2/user/search?username=%s", email), nil)
 
 	if err != nil {
 		return nil, err
 	}
+
+	response := responseArray[0]
 	
 	return &User{
 		Key: response["key"].(string),
@@ -95,11 +116,13 @@ func (server *JiraServer) GetUserByEmail(email string) (*User, error) {
 }
 
 func (server *JiraServer) GetTicketByKey(key string) (*Ticket, error) {
-	response, err := server.DoRequest("GET", fmt.Sprintf("/rest/api/2/issue/%s", key), nil, false)
+	responseArray, err := server.DoRequest("GET", fmt.Sprintf("/rest/api/2/issue/%s", key), nil)
 
 	if err != nil {
 		return nil, err
 	}
+
+	response := responseArray[0]
 
 	if response["fields"] == nil {
 		return nil, errors.New("no such ticket")
@@ -117,9 +140,11 @@ func (server *JiraServer) GetTicketByKey(key string) (*Ticket, error) {
 		assignee = fields["assignee"].(map[string]interface{})
 		assigneeEmail = assignee["emailAddress"].(string)
 	}
-	
+
+	ticketKey := response["key"].(string)
 	return &Ticket{
-		Key: response["key"].(string),
+		Key: ticketKey,
+		Url: server.GetTicketURL(ticketKey),
 		ProjectID: project["id"].(string),
 		ProjectKey: project["key"].(string),
 		AssigneeEmail: assigneeEmail,
@@ -147,14 +172,22 @@ func (server *JiraServer) CreateTicket(priority int, topic string, assignee *Use
 	}
 
 	url := "/rest/api/2/issue"
-	response, _ := server.DoRequest("POST", url, request, false)
+	responseArray, _ := server.DoRequest("POST", url, request)
+	response := responseArray[0]
 
 	return &Ticket{
-		Url: fmt.Sprintf("%s/issues/%s", server.Origin, response["key"]),
+		Url: server.GetTicketURL(response["key"].(string)),
 		Key: response["key"].(string),
 	}, nil
 }
 
+func (server *JiraServer) UpdateTicket(ticket *Ticket, request *map[string]interface{}) error {
+	url := "/rest/api/2/issue/" + ticket.Key
+	_, err := server.DoRequest("PUT", url, request)
+
+	// will be nil if no error
+	return err
+}
 
 func (server *JiraServer) AssignTicketToUser(ticket *Ticket, user *User) error {
 	// request JSON
@@ -166,9 +199,40 @@ func (server *JiraServer) AssignTicketToUser(ticket *Ticket, user *User) error {
 		},
 	}
 
-	url := "/rest/api/2/issue/" + ticket.Key
-	_, err := server.DoRequest("PUT", url, request, false)
+	return server.UpdateTicket(ticket, request)
+}
 
-	// will be nil if no error
+
+func (server *JiraServer)	DoTicketTransition(ticket *Ticket, transitionName string) error {
+	// get the transitions that are allowed and find the right one.
+	transitionsURL := fmt.Sprintf("/rest/api/2/issue/%s/transitions", ticket.Key)
+	transitionsArray, _ := server.DoRequest("GET", transitionsURL , nil)
+
+	transitions:= transitionsArray[0]["transitions"].([]interface{})
+
+	var transitionID string
+	
+	// find the right transition
+	for _, v := range transitions {
+		oneTransition := v.(map[string]interface{})
+		if oneTransition["name"] == transitionName {
+			transitionID = oneTransition["id"].(string)
+			break
+		}
+	}
+
+	if transitionID == "" {
+		return errors.New("no transition named '" + transitionName + "'")
+	}
+	
+	// request JSON
+	request := &map[string]interface{}{
+		"transition": &map[string]interface{}{
+			"id": transitionID,
+		},
+	}
+
+	_, err := server.DoRequest("POST", transitionsURL, request)
+
 	return err
 }
