@@ -125,7 +125,7 @@ func GetTicketFromCurrentChannel(client *Client, JiraServer *jira.JiraServer, ch
 	// then the ticket that matches
 	ticket, err := JiraServer.GetTicketByKey(channel.Name)
 
-	if err != nil || ticket.ProjectID != JiraServer.ProjectID {
+	if err != nil || ticket.Fields.Project.ID != JiraServer.ProjectID {
 		return nil, errors.New("no ticket for this channel")
 	}
 
@@ -201,7 +201,7 @@ func main() {
 			panic("no JIRA ticket created")
 		}
 
-		doc := createGoogleDoc(ticket.Url, ticket.Key, priority, topic)
+		doc := createGoogleDoc(ticket.Url(), ticket.Key, priority, topic)
 
 		if doc == nil {
 			panic("No google doc created")
@@ -210,7 +210,7 @@ func main() {
 		channel, _ := client.CreateChannel(strings.ToLower(ticket.Key))
 
 		// set up the Flare room
-		client.Send(fmt.Sprintf("JIRA ticket: %s", ticket.Url), channel.ID)
+		client.Send(fmt.Sprintf("JIRA ticket: %s", ticket.Url()), channel.ID)
 		client.Send(fmt.Sprintf("Facts docs: %s", doc.Url), channel.ID)
 		client.Send(fmt.Sprintf("Flare resources: %s", resources_url), channel.ID)
 
@@ -251,7 +251,7 @@ func main() {
 		if err == nil {
 			client.Send("... and the Flare was mitigated, and there was much rejoicing throughout the land.", msg.Channel)
 		} else {
-			client.Send("... couldn't do it :( The JIRA ticket might not be in the right state. Check it: "+ticket.Url, msg.Channel)
+			client.Send("... couldn't do it :( The JIRA ticket might not be in the right state. Check it: "+ticket.Url(), msg.Channel)
 		}
 	})
 

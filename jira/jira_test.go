@@ -68,7 +68,7 @@ func TestGetUserByEmail(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, theUser.Key, "alice.smith")
 	assert.Equal(t, theUser.Name, "alice.smith")
-	assert.Equal(t, theUser.Email, "alice.smith@example.com")
+	assert.Equal(t, theUser.EmailAddress, "alice.smith@example.com")
 }
 
 func TestGetTicketByKey(t *testing.T) {
@@ -115,7 +115,7 @@ func TestCreateTicket(t *testing.T) {
 
 	theTicket, err := testServer.CreateTicket(0, "It's a problem", &jira.User{
 		Name:  "alice.smith",
-		Email: "alice.smith@example.com",
+		EmailAddress: "alice.smith@example.com",
 	})
 
 	assert.True(t, jiraServiceCalled)
@@ -142,15 +142,20 @@ func TestAssignTicketToUser(t *testing.T) {
 	testServer := CreateTestJiraServer()
 
 	err := testServer.AssignTicketToUser(&jira.Ticket{
-		Url:        "https://mock.atlassian.net/issues/MOCK-ISSUE-ID",
+		//		Url:        "https://mock.atlassian.net/issues/MOCK-ISSUE-ID",
 		Key:        "MOCK-ISSUE-ID",
-		ProjectID:  "MOCK-PROJECT-ID",
-		ProjectKey: "MOCK-PROJECT-KEY",
-	}, &jira.User{
-		Key:   "alice.smith",
-		Name:  "alice.smith",
-		Email: "alice.smith@example.com",
-	})
+		Fields: jira.TicketFields{
+			Project: jira.Project{
+				ID:  "MOCK-PROJECT-ID",
+				Key: "MOCK-PROJECT-KEY",
+			},
+		},
+	},
+		&jira.User{
+			Key:   "alice.smith",
+			Name:  "alice.smith",
+			EmailAddress: "alice.smith@example.com",
+		})
 
 	assert.True(t, jiraServiceCalled)
 
@@ -182,10 +187,13 @@ func TestDoTicketTransition(t *testing.T) {
 	testServer := CreateTestJiraServer()
 
 	err := testServer.DoTicketTransition(&jira.Ticket{
-		Url:        "https://mock.atlassian.net/issues/MOCK-ISSUE-ID",
 		Key:        "MOCK-ISSUE-ID",
-		ProjectID:  "MOCK-PROJECT-ID",
-		ProjectKey: "MOCK-PROJECT-KEY",
+		Fields: jira.TicketFields{
+			Project: jira.Project{
+				ID:  "MOCK-PROJECT-ID",
+				Key: "MOCK-PROJECT-KEY",
+			},
+		},
 	}, "Mitigate")
 
 	assert.True(t, jiraServiceCalled)
