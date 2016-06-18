@@ -3,7 +3,6 @@ package jira
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -215,7 +214,7 @@ func (server *JiraServer) DoTicketTransition(ticket *Ticket, transitionName stri
 	}
 
 	if theTransition == nil {
-		return errors.New("no transition named '" + transitionName + "'")
+		return fmt.Errorf("no transition named %s", transitionName)
 	}
 
 	// request JSON
