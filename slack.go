@@ -37,7 +37,7 @@ func (c *Client) CreateChannel(name string) (*slack.Channel, error) {
 		return nil, err
 	} else {
 		return channel, nil
-	}	
+	}
 }
 
 func (c *Client) Hear(pattern string, fn func(*Message, [][]string)) {
