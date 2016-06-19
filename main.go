@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"golang.org/x/oauth2"
 
@@ -54,6 +55,11 @@ func decodeOAuthToken(tokenString string) *oauth2.Token {
 	dec.Decode(token)
 
 	return token
+}
+
+func currentTimeStringInTZ(tz string) string {
+	tzLocation, _ := time.LoadLocation(tz)
+	return time.Now().In(tzLocation).Format(time.RFC3339)
 }
 
 func main() {
@@ -109,6 +115,13 @@ func main() {
 		ticket, _ := JiraServer.GetTicketByKey("flare-165")
 
 		fmt.Println(ticket)
+
+		// get a test google doc and update it
+		googleDocID := "1Hd2T9hr4wYQZY6ZoZJG3y3yc6zuABjLumPQccHI1XXw"
+		doc, _ := GoogleDocsServer.GetDoc(googleDocID)
+		html, _ := GoogleDocsServer.GetDocContent(doc, "text/rtf")
+		newHTML := strings.Replace(html, "Flare", "Booya", 1)
+		GoogleDocsServer.UpdateDocContent(doc, newHTML)
 	})
 
 	client.Respond(fireFlareCommandRegexp, func(msg *Message, params [][]string) {
@@ -134,11 +147,24 @@ func main() {
 		}
 
 		docTitle := fmt.Sprintf("%s: %s", ticket.Key, topic)
-		doc, err := GoogleDocsServer.CreateFromTemplate(docTitle)
+		doc, err := GoogleDocsServer.CreateFromTemplate(docTitle, map[string]string{
+			"jira_key": ticket.Key,
+		})
 
 		if err != nil {
 			panic("No google doc created")
 		}
+
+		// update the google doc with some basic information
+		html, err := GoogleDocsServer.GetDocContent(doc, "text/html")
+
+		html = strings.Replace(html, "[FLARE-KEY]", ticket.Key, 1)
+		html = strings.Replace(html, "[START-DATE]", currentTimeStringInTZ("US/Pacific"), 1)
+		html = strings.Replace(html, "[SUMMARY]", topic, 1)
+
+		GoogleDocsServer.UpdateDocContent(doc, html)
+
+		err = GoogleDocsServer.SetDocPermissionTypeRole(doc, "domain", "writer")
 
 		channel, _ := client.CreateChannel(strings.ToLower(ticket.Key))
 
