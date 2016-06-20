@@ -38,7 +38,7 @@ func NewGoogleDocsServer(clientID string, clientSecret string, accessToken *oaut
 	}
 
 	// instantiate the Google Drive client
-	oauthClient := config.Client(context.Background(), accessToken)
+	oauthClient := config.Client(context.TODO(), accessToken)
 	service, err := drive.New(oauthClient)
 
 	if err != nil {
