@@ -1,10 +1,10 @@
 package main
 
 import (
-	"errors"
+	"bytes"
 	"encoding/base64"
 	"encoding/gob"
-	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -12,8 +12,8 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"github.com/Clever/flarebot/jira"
 	"github.com/Clever/flarebot/googledocs"
+	"github.com/Clever/flarebot/jira"
 )
 
 //
@@ -74,7 +74,7 @@ func main() {
 		decodeOAuthToken(os.Getenv("GOOGLE_FLAREBOT_ACCESS_TOKEN")),
 		os.Getenv("GOOGLE_TEMPLATE_DOC_ID"),
 	)
-	
+
 	// Link to flare resources
 	resources_url := os.Getenv("FLARE_RESOURCES_URL")
 

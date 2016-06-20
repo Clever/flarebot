@@ -114,7 +114,7 @@ func TestCreateTicket(t *testing.T) {
 	testServer := CreateTestJiraServer()
 
 	theTicket, err := testServer.CreateTicket(0, "It's a problem", &jira.User{
-		Name:  "alice.smith",
+		Name:         "alice.smith",
 		EmailAddress: "alice.smith@example.com",
 	})
 
@@ -143,7 +143,7 @@ func TestAssignTicketToUser(t *testing.T) {
 
 	err := testServer.AssignTicketToUser(&jira.Ticket{
 		//		Url:        "https://mock.atlassian.net/issues/MOCK-ISSUE-ID",
-		Key:        "MOCK-ISSUE-ID",
+		Key: "MOCK-ISSUE-ID",
 		Fields: jira.TicketFields{
 			Project: jira.Project{
 				ID:  "MOCK-PROJECT-ID",
@@ -152,8 +152,8 @@ func TestAssignTicketToUser(t *testing.T) {
 		},
 	},
 		&jira.User{
-			Key:   "alice.smith",
-			Name:  "alice.smith",
+			Key:          "alice.smith",
+			Name:         "alice.smith",
 			EmailAddress: "alice.smith@example.com",
 		})
 
@@ -187,7 +187,7 @@ func TestDoTicketTransition(t *testing.T) {
 	testServer := CreateTestJiraServer()
 
 	err := testServer.DoTicketTransition(&jira.Ticket{
-		Key:        "MOCK-ISSUE-ID",
+		Key: "MOCK-ISSUE-ID",
 		Fields: jira.TicketFields{
 			Project: jira.Project{
 				ID:  "MOCK-PROJECT-ID",
