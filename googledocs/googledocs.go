@@ -21,11 +21,11 @@ type GoogleDocsService interface {
 }
 
 type GoogleDocsServer struct {
-	ClientID string
-	ClientSecret string
-	AccessToken *oauth2.Token
-	Service *drive.Service
-	TemplateDocID string
+	clientID string
+	clientSecret string
+	accessToken *oauth2.Token
+	service *drive.Service
+	templateDocID string
 }
 
 
@@ -46,16 +46,16 @@ func NewGoogleDocsServer(clientID string, clientSecret string, accessToken *oaut
 	}
 	
 	return &GoogleDocsServer{
-		ClientID: clientID,
-		ClientSecret: clientSecret,
-		AccessToken: accessToken,
-		Service: service,
-		TemplateDocID: templateDocID,
+		clientID: clientID,
+		clientSecret: clientSecret,
+		accessToken: accessToken,
+		service: service,
+		templateDocID: templateDocID,
 	}, nil
 }
 
 func (server *GoogleDocsServer) CreateFromTemplate(title string) (*Doc, error) {
-	file, err := server.Service.Files.Copy(server.TemplateDocID, &drive.File{
+	file, err := server.service.Files.Copy(server.templateDocID, &drive.File{
 		Title: title,
 	}).Do()
 
@@ -73,7 +73,7 @@ func (server *GoogleDocsServer) SetDocPermissionTypeRole(doc *Doc, permissionTyp
 	file := doc.File
 	
 	// make it editable by the entire organization
-	permissions, err := server.Service.Permissions.List(file.Id).Do()
+	permissions, err := server.service.Permissions.List(file.Id).Do()
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func (server *GoogleDocsServer) SetDocPermissionTypeRole(doc *Doc, permissionTyp
 	for _, perm := range permissions.Items {
 		if perm.Type == permissionType {
 			perm.Role = permissionRole
-			_, err = server.Service.Permissions.Update(file.Id, perm.Id, perm).Do()
+			_, err = server.service.Permissions.Update(file.Id, perm.Id, perm).Do()
 			return err
 		}
 	}
