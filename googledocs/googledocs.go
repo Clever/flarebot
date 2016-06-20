@@ -118,8 +118,6 @@ func (server *GoogleDocsServer) GetDoc(fileID string) (*Doc, error) {
 		return nil, err
 	}
 
-	fmt.Println(len(f.Properties))
-
 	return &Doc{
 		File: f,
 	}, nil
