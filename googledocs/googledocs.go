@@ -3,7 +3,7 @@
 package googledocs
 
 import (
-	"errors"
+	"fmt"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
@@ -87,5 +87,5 @@ func (server *GoogleDocsServer) SetDocPermissionTypeRole(doc *Doc, permissionTyp
 		}
 	}
 
-	return errors.New("could not find permission of type " + permissionType)
+	return fmt.Errorf("could not find permission of type %s", permissionType)
 }
