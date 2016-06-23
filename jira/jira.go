@@ -10,16 +10,16 @@ import (
 )
 
 type status struct {
-	ID  string `json:"id"`
-	Name string `json:"name"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
 	Description string `json:"description"`
 }
 
 type transition struct {
-	ID string `json:"id"`
-	Name string `json:"name"`
-	To status `json:"to"`
-	HasScreen bool `json:"hasScreen"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	To        status `json:"to"`
+	HasScreen bool   `json:"hasScreen"`
 }
 
 type transitionResponse struct {
@@ -27,14 +27,14 @@ type transitionResponse struct {
 }
 
 type User struct {
-	Key   string  `json:"key"`
-	Name  string  `json:"name"`
-	EmailAddress string  `json:"emailAddress"`
+	Key          string `json:"key"`
+	Name         string `json:"name"`
+	EmailAddress string `json:"emailAddress"`
 }
 
 type Project struct {
-	ID string `json:"id"`
-	Key string `json:"key"`
+	ID   string `json:"id"`
+	Key  string `json:"key"`
 	Name string `json:"name"`
 }
 
@@ -43,12 +43,12 @@ type TicketFields struct {
 }
 
 type Ticket struct {
-	service       JiraService
-	Key           string   `json:"key"`
-	Fields TicketFields `json:"fields"`
-	Creator User `json:"creator"`
-	Reporter User `json:"reporter"`
-	Assignee User `json:"assignee"`
+	service  JiraService
+	Key      string       `json:"key"`
+	Fields   TicketFields `json:"fields"`
+	Creator  User         `json:"creator"`
+	Reporter User         `json:"reporter"`
+	Assignee User         `json:"assignee"`
 }
 
 type JiraService interface {
@@ -115,7 +115,7 @@ func (server *JiraServer) DoRequest(method string, path string, body map[string]
 	return json.Unmarshal(responseBody, response)
 }
 
-func (server *JiraServer) ticketUrl (ticketKey string) string {
+func (server *JiraServer) ticketUrl(ticketKey string) string {
 	return fmt.Sprintf("%s/issues/%s", server.Origin, ticketKey)
 }
 
@@ -163,12 +163,12 @@ func (server *JiraServer) CreateTicket(priority int, topic string, assignee *Use
 	}
 
 	var ticket Ticket
-	
+
 	url := "/rest/api/2/issue"
 	err := server.DoRequest("POST", url, request, &ticket)
 
 	ticket.service = server
-	
+
 	if err != nil {
 		return nil, err
 	}
