@@ -71,6 +71,9 @@ type Msg struct {
 	// https://api.slack.com/rtm
 	ReplyTo int    `json:"reply_to,omitempty"`
 	Team    string `json:"team,omitempty"`
+
+	// reactions
+	Reactions []ItemReaction `json:"reactions,omitempty"`
 }
 
 // Icon is used for bot messages
@@ -112,5 +115,17 @@ func (rtm *RTM) NewOutgoingMessage(text string, channel string) *OutgoingMessage
 		Type:    "message",
 		Channel: channel,
 		Text:    text,
+	}
+}
+
+// NewTypingMessage prepares an OutgoingMessage that the user can
+// use to send as a typing indicator. Use this function to properly set the
+// messageID.
+func (rtm *RTM) NewTypingMessage(channel string) *OutgoingMessage {
+	id := rtm.idGen.Next()
+	return &OutgoingMessage{
+		ID:      id,
+		Type:    "typing",
+		Channel: channel,
 	}
 }

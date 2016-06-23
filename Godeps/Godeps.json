@@ -15,8 +15,8 @@
 		},
 		{
 			"ImportPath": "github.com/nlopes/slack",
-			"Comment": "v0.0.1-65-g4a9ff5f",
-			"Rev": "4a9ff5f6ed8bb0df51620f49ee90fc0858a2913e"
+			"Comment": "v0.0.1-106-g67c6939",
+			"Rev": "67c6939dd382a85ccbbe2f2e133fd245fe424098"
 		},
 		{
 			"ImportPath": "github.com/pmezard/go-difflib/difflib",
