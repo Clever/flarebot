@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"golang.org/x/oauth2"
 
@@ -54,6 +55,11 @@ func decodeOAuthToken(tokenString string) *oauth2.Token {
 	dec.Decode(token)
 
 	return token
+}
+
+func currentTimeStringInTZ(tz string) string {
+	tzLocation, _ := time.LoadLocation(tz)
+	return time.Now().In(tzLocation).Format(time.RFC3339)
 }
 
 func main() {
@@ -109,13 +115,18 @@ func main() {
 		ticket, _ := JiraServer.GetTicketByKey("flare-165")
 
 		fmt.Println(ticket)
+
+		// get a test google doc and update it
+		googleDocID := "1Hd2T9hr4wYQZY6ZoZJG3y3yc6zuABjLumPQccHI1XXw"
+		doc, _ := GoogleDocsServer.GetDoc(googleDocID)
+		html, _ := GoogleDocsServer.GetDocContent(doc, "text/html")
+		newHTML := strings.Replace(html, "Flare", "Booya", 1)
+		GoogleDocsServer.UpdateDocContent(doc, newHTML)
 	})
 
 	client.Respond(fireFlareCommandRegexp, func(msg *Message, params [][]string) {
 		// wrong channel?
 		if msg.Channel != expectedChannel {
-			// removing this because it doesn't really happen and it makes testing harder.
-			// client.Send("I only respond in the #flares channel.", msg.Channel)
 			return
 		}
 
@@ -133,12 +144,32 @@ func main() {
 			panic("no JIRA ticket created")
 		}
 
+		// start progress on the ticket
+		err = JiraServer.DoTicketTransition(ticket, "Start Progress")
+
+		if err != nil {
+			client.Send("JIRA ticket created, but couldn't mark it 'started'.", msg.Channel)
+		}
+
 		docTitle := fmt.Sprintf("%s: %s", ticket.Key, topic)
-		doc, err := GoogleDocsServer.CreateFromTemplate(docTitle)
+		doc, err := GoogleDocsServer.CreateFromTemplate(docTitle, map[string]string{
+			"jira_key": ticket.Key,
+		})
 
 		if err != nil {
 			panic("No google doc created")
 		}
+
+		// update the google doc with some basic information
+		html, err := GoogleDocsServer.GetDocContent(doc, "text/html")
+
+		html = strings.Replace(html, "[FLARE-KEY]", ticket.Key, 1)
+		html = strings.Replace(html, "[START-DATE]", currentTimeStringInTZ("US/Pacific"), 1)
+		html = strings.Replace(html, "[SUMMARY]", topic, 1)
+
+		GoogleDocsServer.UpdateDocContent(doc, html)
+
+		err = GoogleDocsServer.SetDocPermissionTypeRole(doc, "domain", "writer")
 
 		channel, _ := client.CreateChannel(strings.ToLower(ticket.Key))
 
@@ -186,6 +217,23 @@ func main() {
 		} else {
 			client.Send("... couldn't do it :( The JIRA ticket might not be in the right state. Check it: "+ticket.Url(), msg.Channel)
 		}
+	})
+
+	// fallback response saying "I don't understand"
+	client.Respond(".*", func(msg *Message, params [][]string) {
+		// if not in the main Flares channel
+		if msg.Channel != expectedChannel {
+			_, err := GetTicketFromCurrentChannel(client, JiraServer, msg.Channel)
+
+			// or in a flare-specific channel
+			if err != nil {
+				// bail
+				return
+			}
+		}
+
+		// should be taking commands here, and didn't understand
+		client.Send("I'm sorry, I didn't understand that command.", msg.Channel)
 	})
 
 	panic(client.Run())

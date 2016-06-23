@@ -4,6 +4,9 @@ package googledocs
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"strings"
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
@@ -16,14 +19,18 @@ type Doc struct {
 }
 
 type GoogleDocsService interface {
-	CreateFromTemplate(title string) (*Doc, error)
+	CreateFromTemplate(title string, properties map[string]string) (*Doc, error)
 	SetDocPermissionTypeRole(doc *Doc, permissionType string, permissionRole string) error
+	GetDoc(fileID string) (*Doc, error)
+	GetDocContent(doc *Doc, reltype string) (string, error)
+	UpdateDocContent(doc *Doc, content string) error
 }
 
 type GoogleDocsServer struct {
 	clientID      string
 	clientSecret  string
 	accessToken   *oauth2.Token
+	client        *http.Client
 	service       *drive.Service
 	templateDocID string
 }
@@ -48,12 +55,30 @@ func NewGoogleDocsServer(clientID string, clientSecret string, accessToken *oaut
 		clientID:      clientID,
 		clientSecret:  clientSecret,
 		accessToken:   accessToken,
+		client:        oauthClient,
 		service:       service,
 		templateDocID: templateDocID,
 	}, nil
 }
 
-func (server *GoogleDocsServer) CreateFromTemplate(title string) (*Doc, error) {
+func (server *GoogleDocsServer) CreateFromTemplate(title string, properties map[string]string) (*Doc, error) {
+	// add metadata properties
+	propertiesArray := make([]*drive.Property, 0, len(properties))
+	if properties != nil {
+		for k, v := range properties {
+			propertiesArray = append(propertiesArray, &drive.Property{
+				Key:        k,
+				Value:      v,
+				Visibility: "public",
+			})
+		}
+	}
+
+	file := &drive.File{
+		Title:      title,
+		Properties: propertiesArray,
+	}
+
 	file, err := server.service.Files.Copy(server.templateDocID, &drive.File{
 		Title: title,
 	}).Do()
@@ -86,4 +111,39 @@ func (server *GoogleDocsServer) SetDocPermissionTypeRole(doc *Doc, permissionTyp
 	}
 
 	return fmt.Errorf("could not find permission of type %s", permissionType)
+}
+
+func (server *GoogleDocsServer) GetDoc(fileID string) (*Doc, error) {
+	f, err := server.service.Files.Get(fileID).Do()
+	if err != nil {
+		return nil, err
+	}
+
+	return &Doc{
+		File: f,
+	}, nil
+}
+
+func (server *GoogleDocsServer) GetDocContent(doc *Doc, reltype string) (string, error) {
+	relLink := doc.File.ExportLinks[reltype]
+
+	response, err := server.client.Get(relLink)
+
+	if err != nil {
+		return "", err
+	}
+
+	defer response.Body.Close()
+	bytes, err := ioutil.ReadAll(response.Body)
+
+	if err != nil {
+		return "", err
+	}
+
+	return string(bytes), nil
+}
+
+func (server *GoogleDocsServer) UpdateDocContent(doc *Doc, content string) error {
+	server.service.Files.Update(doc.File.Id, doc.File).Media(strings.NewReader(content)).Do()
+	return nil
 }
