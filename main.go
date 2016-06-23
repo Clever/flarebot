@@ -119,7 +119,7 @@ func main() {
 		// get a test google doc and update it
 		googleDocID := "1Hd2T9hr4wYQZY6ZoZJG3y3yc6zuABjLumPQccHI1XXw"
 		doc, _ := GoogleDocsServer.GetDoc(googleDocID)
-		html, _ := GoogleDocsServer.GetDocContent(doc, "text/rtf")
+		html, _ := GoogleDocsServer.GetDocContent(doc, "text/html")
 		newHTML := strings.Replace(html, "Flare", "Booya", 1)
 		GoogleDocsServer.UpdateDocContent(doc, newHTML)
 	})
@@ -127,8 +127,6 @@ func main() {
 	client.Respond(fireFlareCommandRegexp, func(msg *Message, params [][]string) {
 		// wrong channel?
 		if msg.Channel != expectedChannel {
-			// removing this because it doesn't really happen and it makes testing harder.
-			// client.Send("I only respond in the #flares channel.", msg.Channel)
 			return
 		}
 
@@ -144,6 +142,13 @@ func main() {
 
 		if ticket == nil {
 			panic("no JIRA ticket created")
+		}
+
+		// start progress on the ticket
+		err = JiraServer.DoTicketTransition(ticket, "Start Progress")
+
+		if err != nil {
+			client.Send("JIRA ticket created, but couldn't mark it 'started'.", msg.Channel)
 		}
 
 		docTitle := fmt.Sprintf("%s: %s", ticket.Key, topic)
@@ -212,6 +217,23 @@ func main() {
 		} else {
 			client.Send("... couldn't do it :( The JIRA ticket might not be in the right state. Check it: "+ticket.Url(), msg.Channel)
 		}
+	})
+
+	// fallback response saying "I don't understand"
+	client.Respond(".*", func(msg *Message, params [][]string) {
+		// if not in the main Flares channel
+		if msg.Channel != expectedChannel {
+			_, err := GetTicketFromCurrentChannel(client, JiraServer, msg.Channel)
+
+			// or in a flare-specific channel
+			if err != nil {
+				// bail
+				return
+			}
+		}
+
+		// should be taking commands here, and didn't understand
+		client.Send("I'm sorry, I didn't understand that command.", msg.Channel)
 	})
 
 	panic(client.Run())

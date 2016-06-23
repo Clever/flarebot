@@ -116,7 +116,7 @@ func (server *JiraServer) DoRequest(method string, path string, body map[string]
 }
 
 func (server *JiraServer) ticketUrl(ticketKey string) string {
-	return fmt.Sprintf("%s/issues/%s", server.Origin, ticketKey)
+	return fmt.Sprintf("%s/browse/%s", server.Origin, ticketKey)
 }
 
 func (server *JiraServer) GetUserByEmail(email string) (*User, error) {
