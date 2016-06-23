@@ -55,6 +55,7 @@ func NewGoogleDocsServer(clientID string, clientSecret string, accessToken *oaut
 		clientID:      clientID,
 		clientSecret:  clientSecret,
 		accessToken:   accessToken,
+		client:        oauthClient,
 		service:       service,
 		templateDocID: templateDocID,
 	}, nil
