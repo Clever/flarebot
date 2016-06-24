@@ -245,6 +245,9 @@ func main() {
 		} else {
 			client.Send("... couldn't do it :( The JIRA ticket might not be in the right state. Check it: "+ticket.Url(), msg.Channel)
 		}
+
+		// notify the main flares channel
+		client.Send(fmt.Sprintf("@channel #%s has been mitigated", strings.ToLower(ticket.Key)), expectedChannel)
 	})
 
 	// fallback response saying "I don't understand"
