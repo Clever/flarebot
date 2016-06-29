@@ -47,8 +47,23 @@ environment variables are expected:
 * `JIRA_PROJECT_ID`: the JIRA project ID where the ticket should be added
 * `JIRA_ISSUETYPE_ID`: the JIRA issue type ID for the ticket, usually the one that corresponds to `Bug`.
 
+### Documentation
+
+Flarebot provides links to documentation when a Flare is fired. This link is configured as
+
+* `FLARE_RESOURCES_URL`: a URL of Flare-handling resources, checklists, etc.
 
 ## Usage
+
+### Help
+
+```
+@flarebot: help
+```
+
+Lists all commands
+
+### Fire a Flare
 
 ```
 @flarebot: fire a flare p2 District 9 users cannot log in 
@@ -61,15 +76,35 @@ In #flare-4242, @flarebot will:
 * post a link to the Facts Google Doc it created
 * post a link to the Flare Resources page.
 
+
+### Declaring Incident Lead
+
+Within the Flare-specific channel:
+
+```
+@flarebot: I am incident lead
+OK, @ben is incident lead
+```
+
+### Declaring not a Flare or Flare mitigated
+
+Within the Flare-specific channel:
+
+```
+@flarebot: not a flare
+```
+
+```
+@flarebot: flare is mitigated
+```
+
+
 ## Future Features (Maybe)
 
 In the specific channel:
 
 ```
-@flarebot: I am incident lead
-OK, got that
-
-@flarebot: comms lead is @ben
+@flarebot: I am comms lead
 OK, got that
 
 @flarebot: at 10:45am, we see an increase in error rates in oauth service

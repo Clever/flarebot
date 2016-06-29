@@ -21,20 +21,52 @@ import (
 // COMMANDS
 //
 
-// fire a flare
-const fireFlareCommandRegexp string = "[fF]ire (?:a )?(?:retroactive )?[fF]lare [pP]([012]) *(.*)"
+type command struct {
+	regexp string
+	example string
+	description string
+}
 
-// testing
-const testCommandRegexp string = "test *(.*)"
+var fireFlareCommand = &command{
+	regexp: "[fF]ire (?:a )?(?:retroactive )?[fF]lare [pP]([012]) *(.*)",
+	example: "fire a flare p1 logins are down",
+	description: "Fire a new Flare with the given priority and description",
+}
 
-// I am incident lead
-const takingLeadCommandRegexp string = "[iI] am incident lead"
+var testCommand = &command{
+	regexp: "test *(.*)",
+	example: "",
+	description: "",
+}
 
-// flare mitigated
-const flareMitigatedCommandRegexp string = "[Ff]lare (is )?mitigated"
+var takingLeadCommand = &command{
+	regexp: "[iI] am (the )?incident lead",
+	example: "I am incident lead",
+	description: "Declare yourself incident-lead",
+}
+
+var flareMitigatedCommand = &command{
+	regexp: "([Ff]lare )?(is )?mitigated",
+	example: "flare mitigated",
+	description: "Mark the Flare mitigated",
+}
 
 // not a flare
-const notAFlareCommandRegexp string = "not a [Ff]lare"
+var notAFlareCommand = &command{
+	regexp: "([Ff]lare )?(is )?not a [Ff]lare",
+	example: "not a flare",
+	description: "Mark the Flare not-a-flare",
+}
+
+// help command
+var helpCommand = &command{
+	regexp: "[Hh]elp",
+	example: "help",
+	description: "display the list of commands",
+}
+
+var mainChannelCommands = []*command{helpCommand, fireFlareCommand,}
+var flareChannelCommands = []*command{helpCommand, takingLeadCommand, flareMitigatedCommand, notAFlareCommand,}
 
 func GetTicketFromCurrentChannel(client *Client, JiraServer *jira.JiraServer, channelID string) (*jira.Ticket, error) {
 	// first more info about the channel
@@ -99,7 +131,7 @@ func main() {
 
 	expectedChannel := os.Getenv("SLACK_CHANNEL")
 
-	client.Respond(testCommandRegexp, func(msg *Message, params [][]string) {
+	client.Respond(testCommand.regexp, func(msg *Message, params [][]string) {
 		author, _ := msg.AuthorUser()
 		client.Send(fmt.Sprintf("I see you're using the test command. Excellent: %s", author.Profile.Email), msg.Channel)
 
@@ -127,7 +159,7 @@ func main() {
 		GoogleDocsServer.UpdateDocContent(doc, newHTML)
 	})
 
-	client.Respond(fireFlareCommandRegexp, func(msg *Message, params [][]string) {
+	client.Respond(fireFlareCommand.regexp, func(msg *Message, params [][]string) {
 		// wrong channel?
 		if msg.Channel != expectedChannel {
 			return
@@ -213,7 +245,7 @@ func main() {
 		client.Send(fmt.Sprintf("@%s: Flare fired. Please visit #%s", target, strings.ToLower(ticket.Key)), msg.Channel)
 	})
 
-	client.Respond(takingLeadCommandRegexp, func(msg *Message, params [][]string) {
+	client.Respond(takingLeadCommand.regexp, func(msg *Message, params [][]string) {
 		ticket, err := GetTicketFromCurrentChannel(client, JiraServer, msg.Channel)
 
 		if err != nil {
@@ -231,7 +263,7 @@ func main() {
 		client.Send(fmt.Sprintf("Oh Captain My Captain! @%s is now incident lead. Please confirm all actions with them.", author.Name), msg.Channel)
 	})
 
-	client.Respond(flareMitigatedCommandRegexp, func(msg *Message, params [][]string) {
+	client.Respond(flareMitigatedCommand.regexp, func(msg *Message, params [][]string) {
 		ticket, err := GetTicketFromCurrentChannel(client, JiraServer, msg.Channel)
 
 		if err != nil {
@@ -251,7 +283,7 @@ func main() {
 		client.Send(fmt.Sprintf("@channel: #%s has been mitigated", strings.ToLower(ticket.Key)), expectedChannel)
 	})
 
-	client.Respond(notAFlareCommandRegexp, func(msg *Message, params [][]string) {
+	client.Respond(notAFlareCommand.regexp, func(msg *Message, params [][]string) {
 		ticket, err := GetTicketFromCurrentChannel(client, JiraServer, msg.Channel)
 
 		if err != nil {
@@ -271,6 +303,31 @@ func main() {
 		client.Send(fmt.Sprintf("@channel: turns out #%s is not a Flare", strings.ToLower(ticket.Key)), expectedChannel)
 	})
 
+	client.Respond(helpCommand.regexp, func(msg *Message, params [][]string) {
+		var availableCommands []*command
+		
+		if msg.Channel == expectedChannel {
+			availableCommands = mainChannelCommands
+		} else {
+			_, err := GetTicketFromCurrentChannel(client, JiraServer, msg.Channel)
+
+			if err == nil {
+				availableCommands = flareChannelCommands
+			} else {
+				availableCommands = make([]*command, 0)
+			}
+		}
+
+		if len(availableCommands) == 0 {
+			client.Send("no available commands in this channel.", msg.Channel)
+		} else {
+			client.Send("Available commands:", msg.Channel)
+			for _, c := range availableCommands {
+				client.Send(fmt.Sprintf("\"%s\" - %s", c.example, c.description), msg.Channel)
+			}
+		}
+	})
+	
 	// fallback response saying "I don't understand"
 	client.Respond(".*", func(msg *Message, params [][]string) {
 		// if not in the main Flares channel
