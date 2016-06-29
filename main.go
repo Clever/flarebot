@@ -241,9 +241,7 @@ func main() {
 
 		client.Send("setting JIRA ticket to mitigated....", msg.Channel)
 
-		err = JiraServer.DoTicketTransition(ticket, "Mitigate")
-
-		if err == nil {
+		if err := JiraServer.DoTicketTransition(ticket, "Mitigate"); err == nil {
 			client.Send("... and the Flare was mitigated, and there was much rejoicing throughout the land.", msg.Channel)
 		} else {
 			client.Send("... couldn't do it :( The JIRA ticket might not be in the right state. Check it: "+ticket.Url(), msg.Channel)
@@ -263,9 +261,7 @@ func main() {
 
 		client.Send("setting JIRA ticket to Not a Flare....", msg.Channel)
 
-		err = JiraServer.DoTicketTransition(ticket, "Not A Flare")
-
-		if err == nil {
+		if err := JiraServer.DoTicketTransition(ticket, "Not A Flare"); err == nil {
 			client.Send("... and done.", msg.Channel)
 		} else {
 			client.Send("... couldn't do it :( The JIRA ticket might not be in the right state. Check it: "+ticket.Url(), msg.Channel)
