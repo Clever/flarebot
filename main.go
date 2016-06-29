@@ -33,6 +33,9 @@ const takingLeadCommandRegexp string = "[iI] am incident lead"
 // flare mitigated
 const flareMitigatedCommandRegexp string = "[Ff]lare (is )?mitigated"
 
+// not a flare
+const notAFlareCommandRegexp string = "not a [Ff]lare"
+
 func GetTicketFromCurrentChannel(client *Client, JiraServer *jira.JiraServer, channelID string) (*jira.Ticket, error) {
 	// first more info about the channel
 	channel, _ := client.api.GetChannelInfo(channelID)
@@ -238,16 +241,34 @@ func main() {
 
 		client.Send("setting JIRA ticket to mitigated....", msg.Channel)
 
-		err = JiraServer.DoTicketTransition(ticket, "Mitigate")
-
-		if err == nil {
+		if err := JiraServer.DoTicketTransition(ticket, "Mitigate"); err == nil {
 			client.Send("... and the Flare was mitigated, and there was much rejoicing throughout the land.", msg.Channel)
 		} else {
 			client.Send("... couldn't do it :( The JIRA ticket might not be in the right state. Check it: "+ticket.Url(), msg.Channel)
 		}
 
 		// notify the main flares channel
-		client.Send(fmt.Sprintf("@channel #%s has been mitigated", strings.ToLower(ticket.Key)), expectedChannel)
+		client.Send(fmt.Sprintf("@channel: #%s has been mitigated", strings.ToLower(ticket.Key)), expectedChannel)
+	})
+
+	client.Respond(notAFlareCommandRegexp, func(msg *Message, params [][]string) {
+		ticket, err := GetTicketFromCurrentChannel(client, JiraServer, msg.Channel)
+
+		if err != nil {
+			client.Send("Sorry, I can't find the JIRA.", msg.Channel)
+			return
+		}
+
+		client.Send("setting JIRA ticket to Not a Flare....", msg.Channel)
+
+		if err := JiraServer.DoTicketTransition(ticket, "Not A Flare"); err == nil {
+			client.Send("... and done.", msg.Channel)
+		} else {
+			client.Send("... couldn't do it :( The JIRA ticket might not be in the right state. Check it: "+ticket.Url(), msg.Channel)
+		}
+
+		// notify the main flares channel
+		client.Send(fmt.Sprintf("@channel: turns out #%s is not a Flare", strings.ToLower(ticket.Key)), expectedChannel)
 	})
 
 	// fallback response saying "I don't understand"
