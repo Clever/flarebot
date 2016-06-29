@@ -22,7 +22,7 @@ import (
 //
 
 // fire a flare
-const fireFlareCommandRegexp string = "[fF]ire (?:a )?[fF]lare [pP]([012]) *(.*)"
+const fireFlareCommandRegexp string = "[fF]ire (?:a )?(?:retroactive )?[fF]lare [pP]([012]) *(.*)"
 
 // testing
 const testCommandRegexp string = "test *(.*)"
@@ -130,7 +130,14 @@ func main() {
 			return
 		}
 
-		client.Send("OK, let me get my flaregun", msg.Channel)
+		// retroactive?
+		isRetroactive := strings.Contains(msg.Text, "retroactive")
+
+		if isRetroactive {
+			client.Send("OK, let me quietly set up the Flare documents. Nobody freak out, this is retroactive.", msg.Channel)
+		} else {
+			client.Send("OK, let me get my flaregun", msg.Channel)
+		}
 
 		// for now matches are indexed
 		priority, _ := strconv.Atoi(params[0][1])
@@ -151,7 +158,17 @@ func main() {
 			client.Send("JIRA ticket created, but couldn't mark it 'started'.", msg.Channel)
 		}
 
+		// retroactive Flares are immediately mitigated
+		if isRetroactive {
+			err = JiraServer.DoTicketTransition(ticket, "Mitigate")
+		}
+
 		docTitle := fmt.Sprintf("%s: %s", ticket.Key, topic)
+
+		if isRetroactive {
+			docTitle = fmt.Sprintf("%s - Retroactive", docTitle)
+		}
+
 		doc, err := GoogleDocsServer.CreateFromTemplate(docTitle, map[string]string{
 			"jira_key": ticket.Key,
 		})
@@ -174,12 +191,23 @@ func main() {
 		channel, _ := client.CreateChannel(strings.ToLower(ticket.Key))
 
 		// set up the Flare room
+		if isRetroactive {
+			client.Send("This is a RETROACTIVE Flare. All is well.", channel.ID)
+		}
+
 		client.Send(fmt.Sprintf("JIRA ticket: %s", ticket.Url()), channel.ID)
 		client.Send(fmt.Sprintf("Facts docs: %s", doc.File.AlternateLink), channel.ID)
 		client.Send(fmt.Sprintf("Flare resources: %s", resources_url), channel.ID)
 
 		// announce the specific Flare room in the overall Flares room
-		client.Send(fmt.Sprintf("@channel: Flare fired. Please visit #%s", strings.ToLower(ticket.Key)), msg.Channel)
+		target := "channel"
+
+		if isRetroactive {
+			author, _ := msg.AuthorUser()
+			target = author.Name
+		}
+
+		client.Send(fmt.Sprintf("@%s: Flare fired. Please visit #%s", target, strings.ToLower(ticket.Key)), msg.Channel)
 	})
 
 	client.Respond(takingLeadCommandRegexp, func(msg *Message, params [][]string) {
@@ -217,6 +245,9 @@ func main() {
 		} else {
 			client.Send("... couldn't do it :( The JIRA ticket might not be in the right state. Check it: "+ticket.Url(), msg.Channel)
 		}
+
+		// notify the main flares channel
+		client.Send(fmt.Sprintf("@channel #%s has been mitigated", strings.ToLower(ticket.Key)), expectedChannel)
 	})
 
 	// fallback response saying "I don't understand"
