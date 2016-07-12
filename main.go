@@ -22,51 +22,51 @@ import (
 //
 
 type command struct {
-	regexp string
-	example string
+	regexp      string
+	example     string
 	description string
 }
 
 var fireFlareCommand = &command{
-	regexp: "[fF]ire (?:a )?(?:retroactive )?[fF]lare [pP]([012]) *(.*)",
-	example: "fire a flare p1 logins are down",
+	regexp:      "[fF]ire (?:a )?(?:retroactive )?[fF]lare [pP]([012]) *(.*)",
+	example:     "fire a flare p1 logins are down",
 	description: "Fire a new Flare with the given priority and description",
 }
 
 var testCommand = &command{
-	regexp: "test *(.*)",
-	example: "",
+	regexp:      "test *(.*)",
+	example:     "",
 	description: "",
 }
 
 var takingLeadCommand = &command{
-	regexp: "[iI] am (the )?incident lead",
-	example: "I am incident lead",
+	regexp:      "[iI] am (the )?incident lead",
+	example:     "I am incident lead",
 	description: "Declare yourself incident-lead",
 }
 
 var flareMitigatedCommand = &command{
-	regexp: "([Ff]lare )?(is )?mitigated",
-	example: "flare mitigated",
+	regexp:      "([Ff]lare )?(is )?mitigated",
+	example:     "flare mitigated",
 	description: "Mark the Flare mitigated",
 }
 
 // not a flare
 var notAFlareCommand = &command{
-	regexp: "([Ff]lare )?(is )?not a [Ff]lare",
-	example: "not a flare",
+	regexp:      "([Ff]lare )?(is )?not a [Ff]lare",
+	example:     "not a flare",
 	description: "Mark the Flare not-a-flare",
 }
 
 // help command
 var helpCommand = &command{
-	regexp: "[Hh]elp",
-	example: "help",
+	regexp:      "[Hh]elp",
+	example:     "help",
 	description: "display the list of commands",
 }
 
-var mainChannelCommands = []*command{helpCommand, fireFlareCommand,}
-var flareChannelCommands = []*command{helpCommand, takingLeadCommand, flareMitigatedCommand, notAFlareCommand,}
+var mainChannelCommands = []*command{helpCommand, fireFlareCommand}
+var flareChannelCommands = []*command{helpCommand, takingLeadCommand, flareMitigatedCommand, notAFlareCommand}
 
 func GetTicketFromCurrentChannel(client *Client, JiraServer *jira.JiraServer, channelID string) (*jira.Ticket, error) {
 	// first more info about the channel
@@ -95,6 +95,31 @@ func decodeOAuthToken(tokenString string) *oauth2.Token {
 func currentTimeStringInTZ(tz string) string {
 	tzLocation, _ := time.LoadLocation(tz)
 	return time.Now().In(tzLocation).Format(time.RFC3339)
+}
+
+func sendHelpMessage(client *Client, jiraServer *jira.JiraServer, channel string, inMainChannel bool) {
+	var availableCommands []*command
+
+	if inMainChannel {
+		availableCommands = mainChannelCommands
+	} else {
+		_, err := GetTicketFromCurrentChannel(client, jiraServer, channel)
+
+		if err == nil {
+			availableCommands = flareChannelCommands
+		} else {
+			availableCommands = make([]*command, 0)
+		}
+	}
+
+	if len(availableCommands) == 0 {
+		client.Send("no available commands in this channel.", channel)
+	} else {
+		client.Send("Available commands:", channel)
+		for _, c := range availableCommands {
+			client.Send(fmt.Sprintf("\"@%s: %s\" - %s", client.username, c.example, c.description), channel)
+		}
+	}
 }
 
 func main() {
@@ -234,6 +259,9 @@ func main() {
 		client.Send(fmt.Sprintf("Facts docs: %s", doc.File.AlternateLink), channel.ID)
 		client.Send(fmt.Sprintf("Flare resources: %s", resources_url), channel.ID)
 
+		// send room-specific help
+		sendHelpMessage(client, JiraServer, channel.ID, false)
+
 		// announce the specific Flare room in the overall Flares room
 		target := "channel"
 
@@ -304,30 +332,9 @@ func main() {
 	})
 
 	client.Respond(helpCommand.regexp, func(msg *Message, params [][]string) {
-		var availableCommands []*command
-		
-		if msg.Channel == expectedChannel {
-			availableCommands = mainChannelCommands
-		} else {
-			_, err := GetTicketFromCurrentChannel(client, JiraServer, msg.Channel)
-
-			if err == nil {
-				availableCommands = flareChannelCommands
-			} else {
-				availableCommands = make([]*command, 0)
-			}
-		}
-
-		if len(availableCommands) == 0 {
-			client.Send("no available commands in this channel.", msg.Channel)
-		} else {
-			client.Send("Available commands:", msg.Channel)
-			for _, c := range availableCommands {
-				client.Send(fmt.Sprintf("\"%s\" - %s", c.example, c.description), msg.Channel)
-			}
-		}
+		sendHelpMessage(client, JiraServer, msg.Channel, (msg.Channel == expectedChannel))
 	})
-	
+
 	// fallback response saying "I don't understand"
 	client.Respond(".*", func(msg *Message, params [][]string) {
 		// if not in the main Flares channel
