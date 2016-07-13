@@ -29,7 +29,7 @@ type command struct {
 
 var fireFlareCommand = &command{
 	regexp:      "[fF]ire (?:a )?(?:retroactive )?[fF]lare [pP]([012]) *(.*)",
-	example:     "fire a flare p1 logins are down",
+	example:     "fire a flare p2 there is still no hottub on the roof",
 	description: "Fire a new Flare with the given priority and description",
 }
 
@@ -189,6 +189,8 @@ func main() {
 		if msg.Channel != expectedChannel {
 			return
 		}
+
+		client.api.SetUserAsActive()
 
 		// retroactive?
 		isRetroactive := strings.Contains(msg.Text, "retroactive")
