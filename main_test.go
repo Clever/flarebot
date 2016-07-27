@@ -33,13 +33,13 @@ func TestTimeTillNextTopicChange(t *testing.T) {
 	actual = timeTillNextTopicChange(now)
 	assert.Equal(t, expected, actual)
 
-	// Mondy is across month boundary
+	// Monday is across month boundary
 	now = time.Date(2016, 7, 29, 13, 30, 0, 0, pt)
 	expected = time.Date(2016, 8, 1, 12, 0, 0, 0, pt).Sub(now)
 	actual = timeTillNextTopicChange(now)
 	assert.Equal(t, expected, actual)
 
-	// Mondy is across year boundary
+	// Monday is across year boundary
 	now = time.Date(2016, 12, 29, 13, 30, 0, 0, pt)
 	expected = time.Date(2017, 1, 2, 12, 0, 0, 0, pt).Sub(now)
 	actual = timeTillNextTopicChange(now)

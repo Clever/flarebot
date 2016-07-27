@@ -125,7 +125,10 @@ func sendHelpMessage(client *Client, jiraServer *jira.JiraServer, channel string
 }
 
 func timeTillNextTopicChange(now time.Time) time.Duration {
-	pt, _ := time.LoadLocation("America/Los_Angeles")
+	pt, err := time.LoadLocation("America/Los_Angeles")
+	if err != nil {
+		log.Fatal("couldn't load timezone for America/Los_Angeles: ", err)
+	}
 	now = now.In(pt)
 	// Sunday = 0, Monday = 1, etc. so next Monday is 8
 	// to get the difference between next Monday and today, subtract from 8 and mod 7
@@ -142,7 +145,7 @@ func timeTillNextTopicChange(now time.Time) time.Duration {
 		}
 	}
 	year, month, day := now.Date()
-	t := time.Date(year, month, day, 0, 0, 0, 0, pt) // would have used .Truncate(), but that doesn't work as expected if timezone != UTC
+	t := time.Date(year, month, day, 0, 0, 0, 0, pt) // see https://github.com/golang/go/issues/10894
 	t = t.Add(24 * time.Duration(days) * time.Hour)  // next Monday 00:00:00
 	t = t.Add(12 * time.Hour)                        // next Monday noon
 	return t.Sub(now)
