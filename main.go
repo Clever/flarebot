@@ -6,6 +6,8 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
+	"html"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -122,6 +124,67 @@ func sendHelpMessage(client *Client, jiraServer *jira.JiraServer, channel string
 	}
 }
 
+func timeTillNextTopicChange(now time.Time) time.Duration {
+	pt, err := time.LoadLocation("America/Los_Angeles")
+	if err != nil {
+		log.Fatal("couldn't load timezone for America/Los_Angeles: ", err)
+	}
+	now = now.In(pt)
+	// Sunday = 0, Monday = 1, etc. so next Monday is 8
+	// to get the difference between next Monday and today, subtract from 8 and mod 7
+	// mod 7 ensures that if it's Sunday, then the next Monday is 1 instead of 8
+	// if today == Monday (days == 0), then look at hours
+	days := (8 - now.Weekday()) % 7
+	if days == 0 {
+		// special case for Monday
+		// if it's not past noon, we can still change the topic today at noon,
+		// so we can leave days == 0
+		if now.Hour() > 11 {
+			// it's past noon, so we need the next Monday
+			days = 7
+		}
+	}
+	year, month, day := now.Date()
+	t := time.Date(year, month, day, 0, 0, 0, 0, pt) // see https://github.com/golang/go/issues/10894
+	t = t.Add(24 * time.Duration(days) * time.Hour)  // next Monday 00:00:00
+	t = t.Add(12 * time.Hour)                        // next Monday noon
+	return t.Sub(now)
+}
+
+func swapNextTeam(topic string) string {
+	teams := []string{
+		"#oncall-apps",
+		"#oncall-classrooms",
+		"#oncall-districts",
+		"#oncall-infra",
+		"#oncall-ip",
+	}
+	for i, team := range teams {
+		if strings.Contains(topic, team) {
+			topic = strings.Replace(topic, team, teams[(i+1)%len(teams)], -1)
+			break
+		}
+	}
+	return topic
+}
+
+func changeTopic(client *Client, channel string) {
+	for {
+		t := timeTillNextTopicChange(time.Now())
+		time.Sleep(t)
+		info, err := client.api.GetChannelInfo(channel)
+		if err != nil {
+			log.Fatal("error getting topic: ", err)
+		}
+		topic := html.UnescapeString(info.Topic.Value)
+		topic = swapNextTeam(topic)
+		_, err = client.api.SetChannelTopic(channel, topic)
+		if err != nil {
+			log.Fatal("error setting topic: ", err)
+		}
+	}
+}
+
 func main() {
 	// JIRA service
 	var JiraServer *jira.JiraServer = &jira.JiraServer{
@@ -155,6 +218,8 @@ func main() {
 	}
 
 	expectedChannel := os.Getenv("SLACK_CHANNEL")
+
+	go changeTopic(client, expectedChannel)
 
 	client.Respond(testCommand.regexp, func(msg *Message, params [][]string) {
 		author, _ := msg.AuthorUser()
