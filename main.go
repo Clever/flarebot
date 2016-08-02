@@ -62,13 +62,21 @@ var notAFlareCommand = &command{
 
 // help command
 var helpCommand = &command{
-	regexp:      "[Hh]elp",
+	regexp:      "[Hh]elp *$",
 	example:     "help",
-	description: "display the list of commands",
+	description: "display the list of commands available in this channel",
 }
 
-var mainChannelCommands = []*command{helpCommand, fireFlareCommand}
+// help all command
+var helpAllCommand = &command{
+	regexp:      "[Hh]elp [Aa]ll",
+	example:     "help all",
+	description: "display the list of all commands and the channels where they're available",
+}
+
+var mainChannelCommands = []*command{helpCommand, helpAllCommand, fireFlareCommand}
 var flareChannelCommands = []*command{helpCommand, takingLeadCommand, flareMitigatedCommand, notAFlareCommand}
+var otherChannelCommands = []*command{helpAllCommand}
 
 func GetTicketFromCurrentChannel(client *Client, JiraServer *jira.JiraServer, channelID string) (*jira.Ticket, error) {
 	// first more info about the channel
@@ -99,6 +107,12 @@ func currentTimeStringInTZ(tz string) string {
 	return time.Now().In(tzLocation).Format(time.RFC3339)
 }
 
+func sendCommandsHelpMessage(client *Client, channel string, commands []*command) {
+	for _, c := range commands {
+		client.Send(fmt.Sprintf("\"@%s: %s\" - %s", client.username, c.example, c.description), channel)
+	}
+}
+
 func sendHelpMessage(client *Client, jiraServer *jira.JiraServer, channel string, inMainChannel bool) {
 	var availableCommands []*command
 
@@ -110,7 +124,7 @@ func sendHelpMessage(client *Client, jiraServer *jira.JiraServer, channel string
 		if err == nil {
 			availableCommands = flareChannelCommands
 		} else {
-			availableCommands = make([]*command, 0)
+			availableCommands = otherChannelCommands
 		}
 	}
 
@@ -118,9 +132,7 @@ func sendHelpMessage(client *Client, jiraServer *jira.JiraServer, channel string
 		client.Send("no available commands in this channel.", channel)
 	} else {
 		client.Send("Available commands:", channel)
-		for _, c := range availableCommands {
-			client.Send(fmt.Sprintf("\"@%s: %s\" - %s", client.username, c.example, c.description), channel)
-		}
+		sendCommandsHelpMessage(client, channel, availableCommands)
 	}
 }
 
@@ -400,6 +412,15 @@ func main() {
 
 	client.Respond(helpCommand.regexp, func(msg *Message, params [][]string) {
 		sendHelpMessage(client, JiraServer, msg.Channel, (msg.Channel == expectedChannel))
+	})
+
+	client.Respond(helpAllCommand.regexp, func(msg *Message, param [][]string) {
+		client.Send("Commands Available in the #flares channel:", msg.Channel)
+		sendCommandsHelpMessage(client, msg.Channel, mainChannelCommands)
+		client.Send("Commands Available in a single Flare channel:", msg.Channel)
+		sendCommandsHelpMessage(client, msg.Channel, flareChannelCommands)
+		client.Send("Commands Available in other channels:", msg.Channel)
+		sendCommandsHelpMessage(client, msg.Channel, otherChannelCommands)
 	})
 
 	// fallback response saying "I don't understand"
