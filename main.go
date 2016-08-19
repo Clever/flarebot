@@ -389,7 +389,7 @@ func main() {
 		}
 
 		// notify the main flares channel
-		client.Send(fmt.Sprintf("@channel: #%s has been mitigated", strings.ToLower(ticket.Key)), expectedChannel)
+		client.Send(fmt.Sprintf("#%s has been mitigated", strings.ToLower(ticket.Key)), expectedChannel)
 	})
 
 	client.Respond(notAFlareCommand.regexp, func(msg *Message, params [][]string) {
