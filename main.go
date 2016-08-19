@@ -334,7 +334,7 @@ func main() {
 			client.Send("This is a RETROACTIVE Flare. All is well.", channel.ID)
 		}
 
-		client.Send(topic, channel.ID)
+		client.api.SetChannelTopic(channel.ID, topic)
 
 		client.Send(fmt.Sprintf("JIRA ticket: %s", ticket.Url()), channel.ID)
 		client.Send(fmt.Sprintf("Facts docs: %s", doc.File.AlternateLink), channel.ID)
