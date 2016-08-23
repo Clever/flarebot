@@ -6,10 +6,10 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
-	"regexp"
 	"html"
 	"log"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -347,6 +347,9 @@ func main() {
 
 		// send room-specific help
 		sendHelpMessage(client, JiraServer, channel.ID, false)
+
+		// let people know that they can rename this channel
+		client.Send(fmt.Sprintf("NOTE: you can rename this channel as long as it starts with %s", channel.Name), channel.ID)
 
 		// announce the specific Flare room in the overall Flares room
 		target := "channel"
