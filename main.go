@@ -6,6 +6,7 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
+	"regexp"
 	"html"
 	"log"
 	"os"
@@ -82,8 +83,12 @@ func GetTicketFromCurrentChannel(client *Client, JiraServer *jira.JiraServer, ch
 	// first more info about the channel
 	channel, _ := client.api.GetChannelInfo(channelID)
 
+	// we want to allow channel renaming, so #flare-179 can be renamed to #flare-179-hawaii without breaking flarebot
+	re := regexp.MustCompile("^([^-]+-[^-]+)(?:-.+)")
+	channelName := re.ReplaceAllString(channel.Name, "$1")
+
 	// then the ticket that matches
-	ticket, err := JiraServer.GetTicketByKey(channel.Name)
+	ticket, err := JiraServer.GetTicketByKey(channelName)
 
 	if err != nil || ticket.Fields.Project.ID != JiraServer.ProjectID {
 		return nil, errors.New("no ticket for this channel")
