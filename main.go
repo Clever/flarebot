@@ -79,13 +79,14 @@ var mainChannelCommands = []*command{helpCommand, helpAllCommand, fireFlareComma
 var flareChannelCommands = []*command{helpCommand, takingLeadCommand, flareMitigatedCommand, notAFlareCommand}
 var otherChannelCommands = []*command{helpAllCommand}
 
+var channelNameRegexp = regexp.MustCompile("^([^-]+-[^-]+)(?:-.+)")
+
 func GetTicketFromCurrentChannel(client *Client, JiraServer *jira.JiraServer, channelID string) (*jira.Ticket, error) {
 	// first more info about the channel
 	channel, _ := client.api.GetChannelInfo(channelID)
 
 	// we want to allow channel renaming, so #flare-179 can be renamed to #flare-179-hawaii without breaking flarebot
-	re := regexp.MustCompile("^([^-]+-[^-]+)(?:-.+)")
-	channelName := re.ReplaceAllString(channel.Name, "$1")
+	channelName := channelNameRegexp.ReplaceAllString(channel.Name, "$1")
 
 	// then the ticket that matches
 	ticket, err := JiraServer.GetTicketByKey(channelName)
