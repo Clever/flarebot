@@ -9,6 +9,7 @@ import (
 	"html"
 	"log"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -78,12 +79,18 @@ var mainChannelCommands = []*command{helpCommand, helpAllCommand, fireFlareComma
 var flareChannelCommands = []*command{helpCommand, takingLeadCommand, flareMitigatedCommand, notAFlareCommand}
 var otherChannelCommands = []*command{helpAllCommand}
 
+// #flare-179-foo-bar --> #flare-179
+var channelNameRegexp = regexp.MustCompile("^([^-]+-[^-]+)(?:-.+)")
+
 func GetTicketFromCurrentChannel(client *Client, JiraServer *jira.JiraServer, channelID string) (*jira.Ticket, error) {
 	// first more info about the channel
 	channel, _ := client.api.GetChannelInfo(channelID)
 
+	// we want to allow channel renaming as long as prefix remains #flare-<id>
+	channelName := channelNameRegexp.ReplaceAllString(channel.Name, "$1")
+
 	// then the ticket that matches
-	ticket, err := JiraServer.GetTicketByKey(channel.Name)
+	ticket, err := JiraServer.GetTicketByKey(channelName)
 
 	if err != nil || ticket.Fields.Project.ID != JiraServer.ProjectID {
 		return nil, errors.New("no ticket for this channel")
@@ -342,6 +349,9 @@ func main() {
 
 		// send room-specific help
 		sendHelpMessage(client, JiraServer, channel.ID, false)
+
+		// let people know that they can rename this channel
+		client.Send(fmt.Sprintf("NOTE: you can rename this channel as long as it starts with %s", channel.Name), channel.ID)
 
 		// announce the specific Flare room in the overall Flares room
 		target := "channel"
