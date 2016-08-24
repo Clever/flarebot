@@ -361,7 +361,7 @@ func main() {
 			target = author.Name
 		}
 
-		client.Send(fmt.Sprintf("@%s: Flare fired. Please visit #%s: %s", target, strings.ToLower(ticket.Key), topic), msg.Channel)
+		client.Send(fmt.Sprintf("@%s: Flare fired. Please visit #%s -- %s", target, strings.ToLower(ticket.Key), topic), msg.Channel)
 	})
 
 	client.Respond(takingLeadCommand.regexp, func(msg *Message, params [][]string) {
