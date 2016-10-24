@@ -320,6 +320,7 @@ func main() {
 		})
 
 		if err != nil {
+			log.Fatal(err)
 			panic("No google doc created")
 		}
 
