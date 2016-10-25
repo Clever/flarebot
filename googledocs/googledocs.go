@@ -5,7 +5,6 @@ package googledocs
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
 
@@ -41,7 +40,7 @@ func NewGoogleDocsServerWithServiceAccount(jsonConfigString string, templateDocI
 
 	conf, err := google.JWTConfigFromJSON(jsonBytes, drive.DriveScope)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	// service client

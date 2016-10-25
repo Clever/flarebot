@@ -216,7 +216,7 @@ func main() {
 	}
 
 	// Google Docs service
-	GoogleDocsServer, err := googledocs.NewGoogleDocsServerWithServiceAccount(os.Getenv("GOOGLE_FLAREBOT_SERVICE_ACCOUNT_CONF"), os.Getenv("GOOGLE_TEMPLATE_DOC_ID"))
+	googleDocsServer, err := googledocs.NewGoogleDocsServerWithServiceAccount(os.Getenv("GOOGLE_FLAREBOT_SERVICE_ACCOUNT_CONF"), os.Getenv("GOOGLE_TEMPLATE_DOC_ID"))
 	googleDomain := os.Getenv("GOOGLE_DOMAIN")
 
 	// Link to flare resources
@@ -258,10 +258,10 @@ func main() {
 
 		// get a test google doc and update it
 		googleDocID := "1Hd2T9hr4wYQZY6ZoZJG3y3yc6zuABjLumPQccHI1XXw"
-		doc, _ := GoogleDocsServer.GetDoc(googleDocID)
-		html, _ := GoogleDocsServer.GetDocContent(doc, "text/html")
+		doc, _ := googleDocsServer.GetDoc(googleDocID)
+		html, _ := googleDocsServer.GetDocContent(doc, "text/html")
 		newHTML := strings.Replace(html, "Flare", "Booya", 1)
-		GoogleDocsServer.UpdateDocContent(doc, newHTML)
+		googleDocsServer.UpdateDocContent(doc, newHTML)
 	})
 
 	client.Respond(fireFlareCommand.regexp, func(msg *Message, params [][]string) {
@@ -311,34 +311,34 @@ func main() {
 			docTitle = fmt.Sprintf("%s - Retroactive", docTitle)
 		}
 
-		doc, err := GoogleDocsServer.CreateFromTemplate(docTitle, map[string]string{
+		doc, err := googleDocsServer.CreateFromTemplate(docTitle, map[string]string{
 			"jira_key": ticket.Key,
 		})
 
 		if err != nil {
-			log.Fatal(err)
-			panic("No google doc created")
+			log.Fatalf("No google doc created: %s", err)
 		}
 
 		// update the google doc with some basic information
-		html, err := GoogleDocsServer.GetDocContent(doc, "text/html")
+		html, err := googleDocsServer.GetDocContent(doc, "text/html")
 
 		html = strings.Replace(html, "[FLARE-KEY]", ticket.Key, 1)
 		html = strings.Replace(html, "[START-DATE]", currentTimeStringInTZ("US/Pacific"), 1)
 		html = strings.Replace(html, "[SUMMARY]", topic, 1)
 
-		GoogleDocsServer.UpdateDocContent(doc, html)
+		googleDocsServer.UpdateDocContent(doc, html)
 
 		// update permissions
-		err = GoogleDocsServer.ShareDocWithDomain(doc, googleDomain, "writer")
-
-		if err != nil {
-			log.Fatal(err)
-			panic("couldn't share google doc")
+		if err = googleDocsServer.ShareDocWithDomain(doc, googleDomain, "writer"); err != nil {
+			log.Fatalf("Couldn't share google doc: %s", err)
 		}
 
 		// set up the Flare room
-		channel, _ := client.CreateChannel(strings.ToLower(ticket.Key))
+		channel, err := client.CreateChannel(strings.ToLower(ticket.Key))
+
+		if err != nil {
+			log.Fatalf("Couldn't create Flare channel: %s", err)
+		}
 
 		if isRetroactive {
 			client.Send("This is a RETROACTIVE Flare. All is well.", channel.ID)
