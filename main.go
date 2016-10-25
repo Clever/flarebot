@@ -216,12 +216,8 @@ func main() {
 	}
 
 	// Google Docs service
-	GoogleDocsServer, err := googledocs.NewGoogleDocsServer(
-		os.Getenv("GOOGLE_CLIENT_ID"),
-		os.Getenv("GOOGLE_CLIENT_SECRET"),
-		decodeOAuthToken(os.Getenv("GOOGLE_FLAREBOT_ACCESS_TOKEN")),
-		os.Getenv("GOOGLE_TEMPLATE_DOC_ID"),
-	)
+	GoogleDocsServer, err := googledocs.NewGoogleDocsServerWithServiceAccount(os.Getenv("GOOGLE_FLAREBOT_SERVICE_ACCOUNT_CONF"), os.Getenv("GOOGLE_TEMPLATE_DOC_ID"))
+	googleDomain := os.Getenv("GOOGLE_DOMAIN")
 
 	// Link to flare resources
 	resources_url := os.Getenv("FLARE_RESOURCES_URL")
@@ -333,11 +329,17 @@ func main() {
 
 		GoogleDocsServer.UpdateDocContent(doc, html)
 
-		err = GoogleDocsServer.SetDocPermissionTypeRole(doc, "domain", "writer")
+		// update permissions
+		err = GoogleDocsServer.ShareDocWithDomain(doc, googleDomain, "writer")
 
-		channel, _ := client.CreateChannel(strings.ToLower(ticket.Key))
+		if err != nil {
+			log.Fatal(err)
+			panic("couldn't share google doc")
+		}
 
 		// set up the Flare room
+		channel, _ := client.CreateChannel(strings.ToLower(ticket.Key))
+
 		if isRetroactive {
 			client.Send("This is a RETROACTIVE Flare. All is well.", channel.ID)
 		}
