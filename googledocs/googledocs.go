@@ -35,6 +35,30 @@ type GoogleDocsServer struct {
 	templateDocID string
 }
 
+func NewGoogleDocsServerWithServiceAccount(jsonConfigString string, templateDocID string) (*GoogleDocsServer, error) {
+	jsonBytes := []byte(jsonConfigString)
+
+	conf, err := google.JWTConfigFromJSON(jsonBytes, drive.DriveScope)
+	if err != nil {
+		return nil, err
+	}
+
+	// service client
+	oauthClient := conf.Client(oauth2.NoContext)
+
+	service, err := drive.New(oauthClient)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &GoogleDocsServer{
+		client:        oauthClient,
+		service:       service,
+		templateDocID: templateDocID,
+	}, nil
+}
+
 func NewGoogleDocsServer(clientID string, clientSecret string, accessToken *oauth2.Token, templateDocID string) (*GoogleDocsServer, error) {
 	var config = &oauth2.Config{
 		ClientID:     clientID,
@@ -45,6 +69,7 @@ func NewGoogleDocsServer(clientID string, clientSecret string, accessToken *oaut
 
 	// instantiate the Google Drive client
 	oauthClient := config.Client(context.TODO(), accessToken)
+
 	service, err := drive.New(oauthClient)
 
 	if err != nil {
@@ -111,6 +136,18 @@ func (server *GoogleDocsServer) SetDocPermissionTypeRole(doc *Doc, permissionTyp
 	}
 
 	return fmt.Errorf("could not find permission of type %s", permissionType)
+}
+
+func (server *GoogleDocsServer) ShareDocWithDomain(doc *Doc, domain string, permissionRole string) error {
+	file := doc.File
+
+	// make it editable by the entire organization
+	newPermission := &drive.Permission{Value: domain, Type: "domain", Role: permissionRole}
+
+	// create a new permission
+	_, err := server.service.Permissions.Insert(file.Id, newPermission).Do()
+
+	return err
 }
 
 func (server *GoogleDocsServer) GetDoc(fileID string) (*Doc, error) {

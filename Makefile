@@ -16,6 +16,10 @@ test: $(PKGS)
 build:
 	go build -o bin/$(EXECUTABLE) $(PKG)
 
+# for later, when I want to go strict
+#$(PKGS): golang-test-all-strict-deps
+#	$(call golang-test-all-strict,$@)
+
 $(PKGS): golang-test-all-deps
 	$(call golang-test-all,$@)
 
