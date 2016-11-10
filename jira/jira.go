@@ -52,7 +52,7 @@ type Ticket struct {
 }
 
 type JiraService interface {
-	ticketUrl(ticketKey string) string
+	TicketUrl(ticketKey string) string
 	GetUserByEmail(email string) (*User, error)
 	GetTicketByKey(key string) (*Ticket, error)
 	CreateTicket(priority int, topic string, assignee *User) (*Ticket, error)
@@ -75,7 +75,7 @@ func (ticket *Ticket) Url() string {
 		return ""
 	}
 
-	return ticket.service.ticketUrl(ticket.Key)
+	return ticket.service.TicketUrl(ticket.Key)
 }
 
 // unmarshalls into the provided data structure
@@ -115,7 +115,7 @@ func (server *JiraServer) DoRequest(method string, path string, body map[string]
 	return json.Unmarshal(responseBody, response)
 }
 
-func (server *JiraServer) ticketUrl(ticketKey string) string {
+func (server *JiraServer) TicketUrl(ticketKey string) string {
 	return fmt.Sprintf("%s/browse/%s", server.Origin, ticketKey)
 }
 
