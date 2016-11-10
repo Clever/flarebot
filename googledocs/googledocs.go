@@ -21,6 +21,7 @@ type Doc struct {
 type GoogleDocsService interface {
 	CreateFromTemplate(title string, properties map[string]string) (*Doc, error)
 	SetDocPermissionTypeRole(doc *Doc, permissionType string, permissionRole string) error
+	ShareDocWithDomain(doc *Doc, domain string, permissionRole string) error
 	GetDoc(fileID string) (*Doc, error)
 	GetDocContent(doc *Doc, reltype string) (string, error)
 	UpdateDocContent(doc *Doc, content string) error
