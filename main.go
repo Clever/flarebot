@@ -43,7 +43,7 @@ var testCommand = &command{
 }
 
 var takingLeadCommand = &command{
-	regexp:      "[iI] am (the )?incident lead",
+	regexp:      "[iI]('?m?| am?) (the )?incident lead",
 	example:     "I am incident lead",
 	description: "Declare yourself incident-lead",
 }
