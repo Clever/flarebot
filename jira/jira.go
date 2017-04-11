@@ -39,16 +39,16 @@ type Project struct {
 }
 
 type TicketFields struct {
-	Project Project `json:"project"`
+	Project  Project `json:"project"`
+	Creator  User    `json:"creator"`
+	Reporter User    `json:"reporter"`
+	Assignee User    `json:"assignee"`
 }
 
 type Ticket struct {
-	service  JiraService
-	Key      string       `json:"key"`
-	Fields   TicketFields `json:"fields"`
-	Creator  User         `json:"creator"`
-	Reporter User         `json:"reporter"`
-	Assignee User         `json:"assignee"`
+	service JiraService
+	Key     string       `json:"key"`
+	Fields  TicketFields `json:"fields"`
 }
 
 type JiraService interface {
