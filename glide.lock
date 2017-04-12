@@ -1,0 +1,75 @@
+hash: dbe6001f691aeaffc2798877a8326ef106ff7086d26ca1714e09c8fbbeccf7c3
+updated: 2017-04-11T17:53:13.786655661-07:00
+imports:
+- name: github.com/cpuguy83/go-md2man
+  version: a65d4d2de4d5f7c74868dfa9b202a3c8be315aaa
+  subpackages:
+  - md2man
+- name: github.com/davecgh/go-spew
+  version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
+  subpackages:
+  - spew
+- name: github.com/golang/protobuf
+  version: 8d92cf5fc15a4382f8964b08e1f42a75c0591aa3
+  subpackages:
+  - proto
+- name: github.com/inconshreveable/mousetrap
+  version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- name: github.com/jarcoal/httpmock
+  version: 145b10d659265440f062c31ea15326166bae56ee
+- name: github.com/nlopes/slack
+  version: 67c6939dd382a85ccbbe2f2e133fd245fe424098
+- name: github.com/pmezard/go-difflib
+  version: 792786c7400a136282c1664665ae0a8db921c6c2
+  subpackages:
+  - difflib
+- name: github.com/russross/blackfriday
+  version: 0b647d0506a698cca42caca173e55559b12a69f2
+- name: github.com/shurcooL/sanitized_anchor_name
+  version: 244f5ac324cb97e1987ef901a0081a77bfd8e845
+- name: github.com/spf13/cobra
+  version: 5deb57bbca49eb370538fc295ba4b2988f9f5e09
+- name: github.com/spf13/pflag
+  version: 9a906f17374922ed0f74e1b2f593d3723f2ffb00
+- name: github.com/stretchr/testify
+  version: d77da356e56a7428ad25149ca77381849a6a5232
+  subpackages:
+  - assert
+- name: golang.org/x/net
+  version: ea47fc708ee3e20177f3ca3716217c4ab75942cb
+  subpackages:
+  - context
+  - context/ctxhttp
+  - websocket
+- name: golang.org/x/oauth2
+  version: 2fbf3d7329d847b125188ad64b68cfb1f548938a
+  subpackages:
+  - google
+  - internal
+  - jws
+  - jwt
+- name: google.golang.org/api
+  version: bce17bfa8913f8777eb5221beb361c03edf5817e
+  subpackages:
+  - drive/v2
+  - googleapi
+  - googleapi/internal/uritemplates
+  - internal
+- name: google.golang.org/appengine
+  version: e951d3868b377b14f4e60efa3a301532ee3c1ebf
+  subpackages:
+  - internal
+  - internal/app_identity
+  - internal/base
+  - internal/datastore
+  - internal/log
+  - internal/modules
+  - internal/remote_api
+  - internal/urlfetch
+  - urlfetch
+- name: google.golang.org/cloud
+  version: 9fdfebf8027334a2f0f583591507f08b0ab166d8
+  subpackages:
+  - compute/metadata
+  - internal
+testImports: []

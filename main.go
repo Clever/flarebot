@@ -395,6 +395,15 @@ func main() {
 
 		client.Send("setting JIRA ticket to mitigated....", msg.Channel)
 
+		// If the ticket is unassigned, attempt to assign it to the person
+		// mitigating the flare. Since this is just for convenience, it
+		// doesn't matter if it fails
+		if ticket.Fields.Assignee.Name == "flarebot" {
+			author, _ := msg.AuthorUser()
+			assigneeUser, _ := JiraServer.GetUserByEmail(author.Profile.Email)
+			JiraServer.AssignTicketToUser(ticket, assigneeUser)
+		}
+
 		if err := JiraServer.DoTicketTransition(ticket, "Mitigate"); err == nil {
 			client.Send("... and the Flare was mitigated, and there was much rejoicing throughout the land.", msg.Channel)
 		} else {
@@ -422,7 +431,7 @@ func main() {
 		}
 
 		// notify the main flares channel
-		client.Send(fmt.Sprintf("@channel: turns out #%s is not a Flare", strings.ToLower(ticket.Key)), expectedChannel)
+		client.Send(fmt.Sprintf("turns out #%s is not a Flare", strings.ToLower(ticket.Key)), expectedChannel)
 	})
 
 	client.Respond(helpCommand.regexp, func(msg *Message, params [][]string) {

@@ -47,6 +47,13 @@ environment variables are expected:
 * `JIRA_PROJECT_ID`: the JIRA project ID where the ticket should be added
 * `JIRA_ISSUETYPE_ID`: the JIRA issue type ID for the ticket, usually the one that corresponds to `Bug`.
 
+You can test the jira library in isolation by setting the above environment variables and then running:
+```
+make build
+./bin/jira-cli --help
+```
+
+
 ### Documentation
 
 Flarebot provides links to documentation when a Flare is fired. This link is configured as
