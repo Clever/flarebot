@@ -9,6 +9,9 @@ EXECUTABLE := flarebot
 
 $(eval $(call golang-version-check,1.7))
 
+$(GOPATH)/bin/glide:
+	@go get github.com/Masterminds/glide
+
 all: test build
 
 test: $(PKGS)
@@ -16,6 +19,9 @@ test: $(PKGS)
 build:
 	go build -o bin/jira-cli github.com/Clever/flarebot/jira/testcmd
 	go build -o bin/$(EXECUTABLE) $(PKG)
+
+install_deps: $(GOPATH)/bin/glide
+	@$(GOPATH)/bin/glide install
 
 # for later, when I want to go strict
 #$(PKGS): golang-test-all-strict-deps
