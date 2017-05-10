@@ -363,9 +363,15 @@ func main() {
 
 		client.API.SetChannelTopic(channel.ID, topic)
 
-		client.Send(fmt.Sprintf("JIRA ticket: %s", ticket.Url()), channel.ID)
-		client.Send(fmt.Sprintf("Facts docs: %s", doc.File.AlternateLink), channel.ID)
+		jiraMsg := fmt.Sprintf("JIRA ticket: %s", ticket.Url())
+		docMsg := fmt.Sprintf("Facts docs: %s", doc.File.AlternateLink)
+		client.Send(jiraMsg, channel.ID)
+		client.Send(docMsg, channel.ID)
 		client.Send(fmt.Sprintf("Flare resources: %s", resources_url), channel.ID)
+
+		// Pin the most important messages
+		client.Pin(jiraMsg, channel.ID)
+		client.Pin(docMsg, channel.ID)
 
 		// send room-specific help
 		sendHelpMessage(client, JiraServer, channel.ID, false)
