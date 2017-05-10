@@ -1,9 +1,9 @@
-package main
+package slack
 
 import (
 	"fmt"
 
-	"github.com/nlopes/slack"
+	slk "github.com/nlopes/slack"
 )
 
 type Message struct {
@@ -12,7 +12,7 @@ type Message struct {
 	Timestamp  string
 	Text       string
 	Channel    string
-	api        *slack.Client
+	api        *slk.Client
 	sender     func(string, string)
 }
 
@@ -24,7 +24,7 @@ func (m *Message) Author() (string, error) {
 	return user.Name, nil
 }
 
-func (m *Message) AuthorUser() (*slack.User, error) {
+func (m *Message) AuthorUser() (*slk.User, error) {
 	user, err := m.api.GetUserInfo(m.AuthorId)
 	if err != nil {
 		return nil, err
@@ -37,7 +37,7 @@ func (m *Message) Respond(msg string) {
 	m.sender(fmt.Sprintf("@%s: %s", m.AuthorName, msg), m.Channel)
 }
 
-func messageEventToMessage(msg *slack.MessageEvent, api *slack.Client, sender func(string, string)) *Message {
+func messageEventToMessage(msg *slk.MessageEvent, api *slk.Client, sender func(string, string)) *Message {
 	return &Message{
 		AuthorId:   msg.User,
 		AuthorName: msg.Username,
