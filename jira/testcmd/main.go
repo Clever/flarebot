@@ -41,6 +41,23 @@ func (jc *jiraCommand) GetUserByEmail(cmd *cobra.Command, args []string) {
 	spew.Dump(user)
 }
 
+func (jc *jiraCommand) SetDescriptionCommand(cmd *cobra.Command, args []string) {
+	if len(args) != 2 {
+		log.Fatalf("A jira ticket and description must be provided\n")
+	}
+
+	ticket, err := jc.jiraServer.GetTicketByKey(args[0])
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = jc.jiraServer.SetDescription(ticket, args[1])
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("Set description to '%s'\n", args[1])
+}
+
 func main() {
 	jc := jiraCommand{
 		jiraServer: jira.JiraServer{
@@ -65,8 +82,15 @@ func main() {
 		Run:   jc.GetTicketCommand,
 	}
 
+	var cmdSetDescription = &cobra.Command{
+		Use:   "setDescription <ticket-id> <description>",
+		Short: "replace the description with the text",
+		Run:   jc.SetDescriptionCommand,
+	}
+
 	var rootCmd = &cobra.Command{Use: "jira-cli"}
 	rootCmd.AddCommand(cmdGetUserByEmail)
 	rootCmd.AddCommand(cmdGetTicket)
+	rootCmd.AddCommand(cmdSetDescription)
 	rootCmd.Execute()
 }

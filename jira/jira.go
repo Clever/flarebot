@@ -58,6 +58,7 @@ type JiraService interface {
 	CreateTicket(priority int, topic string, assignee *User) (*Ticket, error)
 	AssignTicketToUser(ticket *Ticket, user *User) error
 	DoTicketTransition(ticket *Ticket, transitionName string) error
+	SetDescription(ticket *Ticket, description string) error
 }
 
 // tuned for a single project
@@ -105,6 +106,10 @@ func (server *JiraServer) DoRequest(method string, path string, body map[string]
 	defer resp.Body.Close()
 
 	responseBody, _ := ioutil.ReadAll(resp.Body)
+
+	if resp.StatusCode > 299 {
+		return fmt.Errorf("Status-code:%d, error: %s", resp.StatusCode, responseBody)
+	}
 
 	if len(responseBody) == 0 || response == nil {
 		return nil
@@ -225,4 +230,14 @@ func (server *JiraServer) DoTicketTransition(ticket *Ticket, transitionName stri
 	err = server.DoRequest("POST", transitionsURL, request, nil)
 
 	return err
+}
+
+func (server *JiraServer) SetDescription(ticket *Ticket, description string) error {
+	editURL := fmt.Sprintf("/rest/api/2/issue/%s", ticket.Key)
+	request := map[string]interface{}{
+		"fields": &map[string]interface{}{
+			"description": description,
+		},
+	}
+	return server.DoRequest("PUT", editURL, request, nil)
 }

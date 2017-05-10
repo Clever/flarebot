@@ -343,6 +343,13 @@ func main() {
 			log.Fatalf("Couldn't share google doc: %s", err)
 		}
 
+		// Add the doc to the Jira ticket
+		desc := fmt.Sprintf("[Facts Doc|%s]", doc.File.AlternateLink)
+		err = JiraServer.SetDescription(ticket, desc)
+		if err != nil {
+			fmt.Printf("Failed to set description for %s: %s\n", ticket.Key, err.Error())
+		}
+
 		// set up the Flare room
 		channel, err := client.CreateChannel(strings.ToLower(ticket.Key))
 
