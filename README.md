@@ -26,13 +26,19 @@ environment variables are expected.
 
 ### Google
 
-Flarebot needs to be a full user (not a service app), which means you
-need to have an OAuth app set up to at least get a token. The
-following environment variables are expected:
+If you set up Flarebot as a normal Google account, the best you can get is an OAuth token
+that expires after a year. To get a forever-token, to match best-practices, and to not have
+to do an OAuth dance, you should set up Flarebot as a [Google Service Account](https://developers.google.com/identity/protocols/OAuth2ServiceAccount#creatinganaccount).
 
+When you generate such an account, Google gives you a JSON-formatted set of service account
+configuration parameters. You'll need this JSON blob as a configuration parameter to Flarebot.
+
+The following environment variables are expected:
+
+* `GOOGLE_DOMAIN`: the domain name of your organization that Flarebot documents will be shared with, e.g. `clever.com`
 * `GOOGLE_CLIENT_ID`: Google OAuth app client ID
 * `GOOGLE_CLIENT_SECRET`: Google OAuth app client secret
-* `GOOGLE_FLAREBOT_ACCESS_TOKEN`: Google OAuth access token for the Flarebot user
+* `GOOGLE_FLAREBOT_SERVICE_ACCOUNT_CONF`: Google Service Account JSON configuration blob
 * `GOOGLE_TEMPLATE_DOC_ID`: the Google Doc ID for the template to copy as the Facts Doc.
 
 ### JIRA
