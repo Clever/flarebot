@@ -237,31 +237,55 @@ func main() {
 	go changeTopic(client, expectedChannel)
 
 	client.Respond(testCommand.regexp, func(msg *Message, params [][]string) {
-		author, _ := msg.AuthorUser()
+		author, err := msg.AuthorUser()
+		if err != nil {
+			client.Send("Unable to determine author of Slack message", msg.Channel)
+			return
+		}
 		client.Send(fmt.Sprintf("I see you're using the test command. Excellent: %s", author.Profile.Email), msg.Channel)
 
 		if len(params[0]) > 1 {
 			client.Send(fmt.Sprintf("you told me: %s", params[0][1]), msg.Channel)
 		}
 
-		user, _ := JiraServer.GetUserByEmail(author.Profile.Email)
+		user, err := JiraServer.GetUserByEmail(author.Profile.Email)
+		if err != nil {
+			client.Send(fmt.Sprintf("Unable to determine JIRA user by email: %s", author.Profile.Email), msg.Channel)
+			return
+		}
 
 		client.Send(fmt.Sprintf("JIRA username is %s", user.Name), msg.Channel)
 
-		channel, _ := client.api.GetChannelInfo(msg.Channel)
+		channel, err := client.api.GetChannelInfo(msg.Channel)
+		if err != nil {
+			client.Send("Unable to determine channel info", msg.Channel)
+			return
+		}
 
 		client.Send(fmt.Sprintf("this channel is %s", channel.Name), msg.Channel)
 
-		ticket, _ := JiraServer.GetTicketByKey("flare-165")
+		sampleTicketKey := "flare-165"
+		ticket, err := JiraServer.GetTicketByKey(sampleTicketKey)
+		if err != nil {
+			client.Send(fmt.Sprintf("Unable to find JIRA ticket by key: %s", sampleTicketKey), msg.Channel)
+			return
+		}
 
 		fmt.Println(ticket)
 
-		// get a test google doc and update it
-		googleDocID := "1Hd2T9hr4wYQZY6ZoZJG3y3yc6zuABjLumPQccHI1XXw"
-		doc, _ := googleDocsServer.GetDoc(googleDocID)
-		html, _ := googleDocsServer.GetDocContent(doc, "text/html")
-		newHTML := strings.Replace(html, "Flare", "Booya", 1)
-		googleDocsServer.UpdateDocContent(doc, newHTML)
+		// verify that we can open and parse the FLARE template
+		googleDocID := os.Getenv("GOOGLE_TEMPLATE_DOC_ID")
+		doc, err := googleDocsServer.GetDoc(googleDocID)
+		if err != nil {
+			client.Send(fmt.Sprintf("Unable to find the Google Doc Flare Template. ID: %s", googleDocID), msg.Channel)
+			return
+		}
+
+		_, err = googleDocsServer.GetDocContent(doc, "text/html")
+		if err != nil {
+			client.Send(fmt.Sprintf("Unable to get Google Doc Content for ID: %s", googleDocID), msg.Channel)
+			return
+		}
 	})
 
 	client.Respond(fireFlareCommand.regexp, func(msg *Message, params [][]string) {
