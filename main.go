@@ -209,11 +209,17 @@ func main() {
 	resources_url := os.Getenv("FLARE_RESOURCES_URL")
 
 	// Slack connection params
-	token := slack.DecodeOAuthToken(os.Getenv("SLACK_FLAREBOT_ACCESS_TOKEN"))
+	var accessToken string
+	if os.Getenv("SLACK_LEGACY_TOKEN") != "" {
+		accessToken = os.Getenv("SLACK_FLAREBOT_ACCESS_TOKEN")
+	} else {
+		token := slack.DecodeOAuthToken(os.Getenv("SLACK_FLAREBOT_ACCESS_TOKEN"))
+		accessToken = token.AccessToken
+	}
 	domain := os.Getenv("SLACK_DOMAIN")
 	username := os.Getenv("SLACK_USERNAME")
 
-	client, err := slack.NewClient(token.AccessToken, domain, username)
+	client, err := slack.NewClient(accessToken, domain, username)
 	if err != nil {
 		panic(err)
 	}
