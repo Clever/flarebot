@@ -264,30 +264,28 @@ func main() {
 
 		client.Send(fmt.Sprintf("this channel is %s", channel.Name), msg.Channel)
 
-		ticket, err := JiraServer.GetTicketByKey("flare-165")
+		sampleTicketKey := "flare-165"
+		ticket, err := JiraServer.GetTicketByKey(sampleTicketKey)
 		if err != nil {
-			client.Send("Unable to find JIRA ticket by key: flare-165", msg.Channel)
+			client.Send(fmt.Sprintf("Unable to find JIRA ticket by key: %s", sampleTicketKey), msg.Channel)
 			return
 		}
 
 		fmt.Println(ticket)
 
-		// get a test google doc and update it
-		googleDocID := "1Hd2T9hr4wYQZY6ZoZJG3y3yc6zuABjLumPQccHI1XXw"
+		// verify that we can open and parse the FLARE template
+		googleDocID := os.Getenv("GOOGLE_TEMPLATE_DOC_ID")
 		doc, err := googleDocsServer.GetDoc(googleDocID)
 		if err != nil {
-			client.Send(fmt.Sprintf("Unable to find Google Doc by ID: %s", googleDocID), msg.Channel)
+			client.Send(fmt.Sprintf("Unable to find the Google Doc Flare Template. ID: %s", googleDocID), msg.Channel)
 			return
 		}
 
-		html, err := googleDocsServer.GetDocContent(doc, "text/html")
+		_, err = googleDocsServer.GetDocContent(doc, "text/html")
 		if err != nil {
 			client.Send(fmt.Sprintf("Unable to get Google Doc Content for ID: %s", googleDocID), msg.Channel)
 			return
 		}
-
-		newHTML := strings.Replace(html, "Flare", "Booya", 1)
-		googleDocsServer.UpdateDocContent(doc, newHTML)
 	})
 
 	client.Respond(fireFlareCommand.regexp, func(msg *Message, params [][]string) {
