@@ -7,7 +7,7 @@ PKGS := $(shell go list ./... | grep -v /vendor)
 EXECUTABLE := flarebot
 .PHONY: test $(PKGS) clean vendor
 
-$(eval $(call golang-version-check,1.7))
+$(eval $(call golang-version-check,1.8))
 
 $(GOPATH)/bin/glide:
 	@go get github.com/Masterminds/glide
@@ -18,6 +18,7 @@ test: $(PKGS)
 
 build:
 	go build -o bin/jira-cli github.com/Clever/flarebot/jira/testcmd
+	go build -o bin/slack-cli github.com/Clever/flarebot/slack/testcmd
 	go build -o bin/$(EXECUTABLE) $(PKG)
 
 install_deps: $(GOPATH)/bin/glide

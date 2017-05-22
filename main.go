@@ -1,9 +1,6 @@
 package main
 
 import (
-	"bytes"
-	"encoding/base64"
-	"encoding/gob"
 	"errors"
 	"fmt"
 	"html"
@@ -14,10 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/oauth2"
-
 	"github.com/Clever/flarebot/googledocs"
 	"github.com/Clever/flarebot/jira"
+	"github.com/Clever/flarebot/slack"
 )
 
 //
@@ -82,9 +78,9 @@ var otherChannelCommands = []*command{helpAllCommand}
 // #flare-179-foo-bar --> #flare-179
 var channelNameRegexp = regexp.MustCompile("^([^-]+-[^-]+)(?:-.+)")
 
-func GetTicketFromCurrentChannel(client *Client, JiraServer *jira.JiraServer, channelID string) (*jira.Ticket, error) {
+func GetTicketFromCurrentChannel(client *slack.Client, JiraServer *jira.JiraServer, channelID string) (*jira.Ticket, error) {
 	// first more info about the channel
-	channel, _ := client.api.GetChannelInfo(channelID)
+	channel, _ := client.API.GetChannelInfo(channelID)
 
 	// we want to allow channel renaming as long as prefix remains #flare-<id>
 	channelName := channelNameRegexp.ReplaceAllString(channel.Name, "$1")
@@ -99,28 +95,18 @@ func GetTicketFromCurrentChannel(client *Client, JiraServer *jira.JiraServer, ch
 	return ticket, nil
 }
 
-func decodeOAuthToken(tokenString string) *oauth2.Token {
-	tokenBytes, _ := base64.StdEncoding.DecodeString(tokenString)
-	tokenBytesBuffer := bytes.NewBuffer(tokenBytes)
-	dec := gob.NewDecoder(tokenBytesBuffer)
-	token := new(oauth2.Token)
-	dec.Decode(token)
-
-	return token
-}
-
 func currentTimeStringInTZ(tz string) string {
 	tzLocation, _ := time.LoadLocation(tz)
 	return time.Now().In(tzLocation).Format(time.RFC3339)
 }
 
-func sendCommandsHelpMessage(client *Client, channel string, commands []*command) {
+func sendCommandsHelpMessage(client *slack.Client, channel string, commands []*command) {
 	for _, c := range commands {
-		client.Send(fmt.Sprintf("\"@%s: %s\" - %s", client.username, c.example, c.description), channel)
+		client.Send(fmt.Sprintf("\"@%s: %s\" - %s", client.Username, c.example, c.description), channel)
 	}
 }
 
-func sendHelpMessage(client *Client, jiraServer *jira.JiraServer, channel string, inMainChannel bool) {
+func sendHelpMessage(client *slack.Client, jiraServer *jira.JiraServer, channel string, inMainChannel bool) {
 	var availableCommands []*command
 
 	if inMainChannel {
@@ -187,17 +173,17 @@ func swapNextTeam(topic string) string {
 	return topic
 }
 
-func changeTopic(client *Client, channel string) {
+func changeTopic(client *slack.Client, channel string) {
 	for {
 		t := timeTillNextTopicChange(time.Now())
 		time.Sleep(t)
-		info, err := client.api.GetChannelInfo(channel)
+		info, err := client.API.GetChannelInfo(channel)
 		if err != nil {
 			log.Fatal("error getting topic: ", err)
 		}
 		topic := html.UnescapeString(info.Topic.Value)
 		topic = swapNextTeam(topic)
-		_, err = client.api.SetChannelTopic(channel, topic)
+		_, err = client.API.SetChannelTopic(channel, topic)
 		if err != nil {
 			log.Fatal("error setting topic: ", err)
 		}
@@ -223,11 +209,17 @@ func main() {
 	resources_url := os.Getenv("FLARE_RESOURCES_URL")
 
 	// Slack connection params
-	token := decodeOAuthToken(os.Getenv("SLACK_FLAREBOT_ACCESS_TOKEN"))
+	var accessToken string
+	if os.Getenv("SLACK_LEGACY_TOKEN") != "" {
+		accessToken = os.Getenv("SLACK_FLAREBOT_ACCESS_TOKEN")
+	} else {
+		token := slack.DecodeOAuthToken(os.Getenv("SLACK_FLAREBOT_ACCESS_TOKEN"))
+		accessToken = token.AccessToken
+	}
 	domain := os.Getenv("SLACK_DOMAIN")
 	username := os.Getenv("SLACK_USERNAME")
 
-	client, err := NewClient(token.AccessToken, domain, username)
+	client, err := slack.NewClient(accessToken, domain, username)
 	if err != nil {
 		panic(err)
 	}
@@ -236,7 +228,7 @@ func main() {
 
 	go changeTopic(client, expectedChannel)
 
-	client.Respond(testCommand.regexp, func(msg *Message, params [][]string) {
+	client.Respond(testCommand.regexp, func(msg *slack.Message, params [][]string) {
 		author, err := msg.AuthorUser()
 		if err != nil {
 			client.Send("Unable to determine author of Slack message", msg.Channel)
@@ -256,7 +248,7 @@ func main() {
 
 		client.Send(fmt.Sprintf("JIRA username is %s", user.Name), msg.Channel)
 
-		channel, err := client.api.GetChannelInfo(msg.Channel)
+		channel, err := client.API.GetChannelInfo(msg.Channel)
 		if err != nil {
 			client.Send("Unable to determine channel info", msg.Channel)
 			return
@@ -288,13 +280,13 @@ func main() {
 		}
 	})
 
-	client.Respond(fireFlareCommand.regexp, func(msg *Message, params [][]string) {
+	client.Respond(fireFlareCommand.regexp, func(msg *slack.Message, params [][]string) {
 		// wrong channel?
 		if msg.Channel != expectedChannel {
 			return
 		}
 
-		client.api.SetUserAsActive()
+		client.API.SetUserAsActive()
 
 		// retroactive?
 		isRetroactive := strings.Contains(msg.Text, "retroactive")
@@ -357,6 +349,13 @@ func main() {
 			log.Fatalf("Couldn't share google doc: %s", err)
 		}
 
+		// Add the doc to the Jira ticket
+		desc := fmt.Sprintf("[Facts Doc|%s]", doc.File.AlternateLink)
+		err = JiraServer.SetDescription(ticket, desc)
+		if err != nil {
+			fmt.Printf("Failed to set description for %s: %s\n", ticket.Key, err.Error())
+		}
+
 		// set up the Flare room
 		channel, err := client.CreateChannel(strings.ToLower(ticket.Key))
 
@@ -368,11 +367,16 @@ func main() {
 			client.Send("This is a RETROACTIVE Flare. All is well.", channel.ID)
 		}
 
-		client.api.SetChannelTopic(channel.ID, topic)
+		client.API.SetChannelTopic(channel.ID, topic)
 
 		client.Send(fmt.Sprintf("JIRA ticket: %s", ticket.Url()), channel.ID)
 		client.Send(fmt.Sprintf("Facts docs: %s", doc.File.AlternateLink), channel.ID)
 		client.Send(fmt.Sprintf("Flare resources: %s", resources_url), channel.ID)
+
+		// Pin the most important messages. NOTE: that this is based on text
+		// matching, so the links need to be escaped to match
+		client.Pin(fmt.Sprintf("JIRA ticket: <%s>", ticket.Url()), channel.ID)
+		client.Pin(fmt.Sprintf("Facts docs: <%s>", doc.File.AlternateLink), channel.ID)
 
 		// send room-specific help
 		sendHelpMessage(client, JiraServer, channel.ID, false)
@@ -391,7 +395,7 @@ func main() {
 		client.Send(fmt.Sprintf("@%s: Flare fired. Please visit #%s -- %s", target, strings.ToLower(ticket.Key), topic), msg.Channel)
 	})
 
-	client.Respond(takingLeadCommand.regexp, func(msg *Message, params [][]string) {
+	client.Respond(takingLeadCommand.regexp, func(msg *slack.Message, params [][]string) {
 		ticket, err := GetTicketFromCurrentChannel(client, JiraServer, msg.Channel)
 
 		if err != nil {
@@ -409,7 +413,7 @@ func main() {
 		client.Send(fmt.Sprintf("Oh Captain My Captain! @%s is now incident lead. Please confirm all actions with them.", author.Name), msg.Channel)
 	})
 
-	client.Respond(flareMitigatedCommand.regexp, func(msg *Message, params [][]string) {
+	client.Respond(flareMitigatedCommand.regexp, func(msg *slack.Message, params [][]string) {
 		ticket, err := GetTicketFromCurrentChannel(client, JiraServer, msg.Channel)
 
 		if err != nil {
@@ -438,7 +442,7 @@ func main() {
 		client.Send(fmt.Sprintf("#%s has been mitigated", strings.ToLower(ticket.Key)), expectedChannel)
 	})
 
-	client.Respond(notAFlareCommand.regexp, func(msg *Message, params [][]string) {
+	client.Respond(notAFlareCommand.regexp, func(msg *slack.Message, params [][]string) {
 		ticket, err := GetTicketFromCurrentChannel(client, JiraServer, msg.Channel)
 
 		if err != nil {
@@ -458,11 +462,11 @@ func main() {
 		client.Send(fmt.Sprintf("turns out #%s is not a Flare", strings.ToLower(ticket.Key)), expectedChannel)
 	})
 
-	client.Respond(helpCommand.regexp, func(msg *Message, params [][]string) {
+	client.Respond(helpCommand.regexp, func(msg *slack.Message, params [][]string) {
 		sendHelpMessage(client, JiraServer, msg.Channel, (msg.Channel == expectedChannel))
 	})
 
-	client.Respond(helpAllCommand.regexp, func(msg *Message, param [][]string) {
+	client.Respond(helpAllCommand.regexp, func(msg *slack.Message, param [][]string) {
 		client.Send("Commands Available in the #flares channel:", msg.Channel)
 		sendCommandsHelpMessage(client, msg.Channel, mainChannelCommands)
 		client.Send("Commands Available in a single Flare channel:", msg.Channel)
@@ -472,7 +476,7 @@ func main() {
 	})
 
 	// fallback response saying "I don't understand"
-	client.Respond(".*", func(msg *Message, params [][]string) {
+	client.Respond(".*", func(msg *slack.Message, params [][]string) {
 		// if not in the main Flares channel
 		if msg.Channel != expectedChannel {
 			_, err := GetTicketFromCurrentChannel(client, JiraServer, msg.Channel)
