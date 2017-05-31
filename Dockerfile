@@ -1,4 +1,4 @@
-FROM alpine:latest
+FROM golang:1.8-alpine
 
 COPY bin/flarebot /usr/bin/flarebot
 
