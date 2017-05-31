@@ -1,0 +1,42 @@
+# Default values for flarebot.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+replicaCount: 1
+image:
+  repository: quay.io/ericavonb/flarebot
+  tag: stable
+  pullPolicy: IfNotPresent
+  pullSecret: t1-quay-repository-pull-secret
+service:
+  name: flarebot
+  type: LoadBalancer
+  externalPort: 80
+  internalPort: 80
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+config:
+  slack:
+    domain: https://coreos.slack.com
+    channel: flares
+    username: FlareBot
+    client_id:
+    client_secret:
+    access_token:
+  google:
+    org_domain: coreos.com
+    client_id:
+    client_secret:
+    service_account_config:
+    template_doc_id:
+  jira:
+    domain: https://coreosdev.atlassian.net
+    username: flarebot
+    password:
+    priorities: P0,P1,P2
+    project_id:
+    issuetype_id:
