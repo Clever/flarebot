@@ -24,19 +24,19 @@ config:
     domain: https://coreos.slack.com
     channel: flares
     username: FlareBot
-    client_id:
-    client_secret:
+    client_id: CLIENT_ID_TEMP
+    client_secret: CLIENT_SECRET_TEMP
     access_token:
   google:
     org_domain: coreos.com
-    client_id:
-    client_secret:
-    service_account_config:
-    template_doc_id:
+    client_id: CLIENT_ID_TEMP
+    client_secret: CLIENT_SECRET_TEMP
+    service_account_config: SERVICE_ACCOUNT_CONFIG_TEMP
+    template_doc_id: TEMPLATE_DOC_ID_TEMP
   jira:
     domain: https://coreosdev.atlassian.net
     username: flarebot
-    password:
+    password: PASSWORD_TEMP
     priorities: P0,P1,P2
-    project_id:
-    issuetype_id:
+    project_id: QUAY
+    issuetype_id: Story
