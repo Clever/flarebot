@@ -21,18 +21,28 @@ resources:
     memory: 128Mi
 config:
   slack:
-    domain: https://coreos.slack.com
-    channel: flares
-    username: FlareBot
-    client_id: CLIENT_ID_TEMP
-    client_secret: CLIENT_SECRET_TEMP
-    access_token:
+    domain: https://edm-talk.slack.com
+    channel: test-flares
+    username: flarebot
+    client_id: "114319848481.190042089488"
+    client_secret: "7f63529e22953b3fdc96dfaf80e45db2"
+    access_token: "xoxb-190147161345-7Naud0K0s6A6R3R1gebAa0HN"
   google:
-    org_domain: coreos.com
-    client_id: CLIENT_ID_TEMP
-    client_secret: CLIENT_SECRET_TEMP
-    service_account_config: SERVICE_ACCOUNT_CONFIG_TEMP
-    template_doc_id: TEMPLATE_DOC_ID_TEMP
+    org_domain: whosdressedbest.com
+    client_id: "104328634050744568917"
+    service_account_config: '{
+      "type": "service_account",
+      "project_id": "development-169320",
+      "private_key_id": "96ce0d1807fe8b3230d662674f2b94c7f8138c10",
+      "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDNwmtzratoGPO7\nK6WEhhThdHlMYnLMakcmz67DBNx4grQ0+xMoigpDlgvawepHQEF1BmPFmtGRfwHN\nYx1fxANNBNXWMx4/UBgsBxE4mhdOdfhBCTXwclB0Gfjq15AIaG0GBdl9lRoH3N1w\nStEn6XM/GS4awUGCcSG8aXB98TACo5l9AHRUllQNd2bDu1cIidsCgh5t554HrycM\nfCF3d+7MpyODyLSBGH0JMLVNtpThoQblbWPq/+hItRsZGsV+OxMKAISgDFKywp4a\nWC+4QKiTd8PDFOhAk3smHN04zAZoEazHyEa8HwnguKHPqSDJgObbJ0V2O8AE1nS6\nay5GZmcbAgMBAAECggEAJkzFQZAXMtZKMBHsymFG67yJg51jrwctXV0VM7no7Amw\nT5hYtZgUVwZMCJlF6aNdS9I3qiWqUsHobPnBEv1ie+ilgSycub5H8ZITM40DP5iX\n8Estnic5MJNRES204svFV3SpSkYBxWroUSmsCxjaWelu+o30irpSREcAKIFHpYXG\n7iT631QiwhZ6Vec6wdjuz1LRIcFGk0woXYa7n/BnH4l1UepO2OT/2Wa+euQl40Si\n8GnmbB6tRnQ9QI1eaGQJ2YnjwkJc/ARMF/WF9w3uUAjBEkjJca2f4U1cvE/9DTMW\nmjUaWdDcxI2WLjobBXqDrPHxY/s2LpEO0vra/qYSaQKBgQDohk9CzzR6dT6VDK2g\n/xhj3gZ2yLNvwOUDTjbpfe8X/cJKiubIdYsEjoT7sY/vn/t5AYIki8FNOd8H1Cvo\n5UZnezwO9NYuwLVQaYpxS4NR0Vtcb60h1qDmM8fTtpUJsFB9DB19K8p4S8xl9DSM\n4dEU5Rd//F+s8FqAQqTLQesMdQKBgQDiiFprNAWeHhUX4cnvg5r16NRfC4psbEvF\n50ttWOmJxbYNozUMxyonBtcgDAgTFbwBE+UPcO7fyDsVdMQ9yRuSZ7gdMQhISLyH\nVPrdJ/kOMRR4DOBs5tRvZ8guznB1VmaY0kZG4841V64fcnBVYKKN4Aj3EODgcnOS\n1+T74pFzTwKBgQC2s0F39yL+zTy9FFcg1w8s+PkPQCdtOZ03+a6/y8mfii2tMHKh\nM2plzC3FLgEwgP2wWHUPjhf2O/B4UEeoGO42xOetwMbBuX09j4/N8U1fbiZg/QaG\nPgPynOD4AtAb6sNzXZ+WCGBwIO6bdUQNJimIR3EtiPkMA1a4zKR7aHHtOQKBgG6Z\nffPLMVbyfv/q+AmdaoHXTCCfZNTsxs330Cax+0uNoQXlghgcASOOvmdiGGsg+Gpa\nSUKRs77EZrxiBxHXZ0PCqexurQmFoa49OkHRq1JXehPmzYe950gBFoZruhI/vdWt\nDCy+OkZm6Zdm6xt0E8lK8XWW4wQSPQUbrSuhgbwXAoGBAIt4Kx1ObL4Shusq6MXf\nC0CPkRC8XKcIFVRpNeZpw6M4JLkEjkBgccK4LIrEWxxmkPSV4StBJbfvqgZLI2xU\n1oo/Rgm2JJnI6FEI643AZVybmo8kP3rHjuheoSvkRbRwJi0yZSyzay0toPbzKjTn\ni65rmcg5rmBin+jxuGNwV42k\n-----END PRIVATE KEY-----\n",
+      "client_email": "flarebot@development-169320.iam.gserviceaccount.com",
+      "client_id": "104328634050744568917",
+      "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+      "token_uri": "https://accounts.google.com/o/oauth2/token",
+      "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+      "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/flarebot%40development-169320.iam.gserviceaccount.com"
+      }'
+    template_doc_id: "1PzXc3BQi2BZZqVcUp7vJAwDGXYrAM4uKb0SixpSdoqw"
   jira:
     domain: https://coreosdev.atlassian.net
     username: flarebot

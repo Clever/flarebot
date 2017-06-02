@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Clever/flarebot/googledocs"
-	"github.com/Clever/flarebot/jira"
-	"github.com/Clever/flarebot/slack"
+	"github.com/ericavonb/flarebot/googledocs"
+	"github.com/ericavonb/flarebot/jira"
+	"github.com/ericavonb/flarebot/slack"
 )
 
 //
@@ -221,7 +221,8 @@ func main() {
 
 	client, err := slack.NewClient(accessToken, domain, username)
 	if err != nil {
-		panic(err)
+		fmt.Printf("ERROR: %s\n", err)
+		os.Exit(1)
 	}
 
 	expectedChannel := os.Getenv("SLACK_CHANNEL")
@@ -283,9 +284,10 @@ func main() {
 	client.Respond(fireFlareCommand.regexp, func(msg *slack.Message, params [][]string) {
 		// wrong channel?
 		if msg.Channel != expectedChannel {
+			fmt.Printf("WRONG CHANNEL - expected=%s actual=%s\n\n", expectedChannel, msg.Channel)
 			return
 		}
-
+		fmt.Println("SET USER ACTIVE")
 		client.API.SetUserAsActive()
 
 		// retroactive?
@@ -294,6 +296,7 @@ func main() {
 		if isRetroactive {
 			client.Send("OK, let me quietly set up the Flare documents. Nobody freak out, this is retroactive.", msg.Channel)
 		} else {
+			fmt.Printf("Trying to send message to %s\n\n", msg.Channel)
 			client.Send("OK, let me get my flaregun", msg.Channel)
 		}
 
@@ -303,32 +306,41 @@ func main() {
 
 		author, _ := msg.AuthorUser()
 		assigneeUser, _ := JiraServer.GetUserByEmail(author.Profile.Email)
-		ticket, _ := JiraServer.CreateTicket(priority, topic, assigneeUser)
+		name := "Unassigned"
+		if assigneeUser != nil {
+			name = assigneeUser.Name
+		}
+		ticket, _ := JiraServer.CreateTicket(priority, topic, name)
 
 		if ticket == nil {
-			panic("no JIRA ticket created")
+			fmt.Println("no JIRA ticket created")
 		}
 
 		// start progress on the ticket
-		err = JiraServer.DoTicketTransition(ticket, "Start Progress")
+		if ticket != nil {
+			err = JiraServer.DoTicketTransition(ticket, "Start Progress")
 
-		if err != nil {
-			client.Send("JIRA ticket created, but couldn't mark it 'started'.", msg.Channel)
+			if err != nil {
+				client.Send("JIRA ticket created, but couldn't mark it 'started'.", msg.Channel)
+			}
+
+			// retroactive Flares are immediately mitigated
+			if isRetroactive {
+				err = JiraServer.DoTicketTransition(ticket, "Mitigate")
+			}
 		}
-
-		// retroactive Flares are immediately mitigated
-		if isRetroactive {
-			err = JiraServer.DoTicketTransition(ticket, "Mitigate")
+		key := "FLARE"
+		if ticket != nil {
+			key = ticket.Key
 		}
-
-		docTitle := fmt.Sprintf("%s: %s", ticket.Key, topic)
+		docTitle := fmt.Sprintf("%s: %s", key, topic)
 
 		if isRetroactive {
 			docTitle = fmt.Sprintf("%s - Retroactive", docTitle)
 		}
 
 		doc, err := googleDocsServer.CreateFromTemplate(docTitle, map[string]string{
-			"jira_key": ticket.Key,
+			"jira_key": key,
 		})
 
 		if err != nil {
@@ -338,7 +350,7 @@ func main() {
 		// update the google doc with some basic information
 		html, err := googleDocsServer.GetDocContent(doc, "text/html")
 
-		html = strings.Replace(html, "[FLARE-KEY]", ticket.Key, 1)
+		html = strings.Replace(html, "[FLARE-KEY]", key, 1)
 		html = strings.Replace(html, "[START-DATE]", currentTimeStringInTZ("US/Pacific"), 1)
 		html = strings.Replace(html, "[SUMMARY]", topic, 1)
 

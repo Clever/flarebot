@@ -104,7 +104,7 @@ func (server *GoogleDocsServer) CreateFromTemplate(title string, properties map[
 		Title:      title,
 		Properties: propertiesArray,
 	}
-
+	fmt.Printf("server: %+v\n", server)
 	file, err := server.service.Files.Copy(server.templateDocID, &drive.File{
 		Title: title,
 	}).Do()

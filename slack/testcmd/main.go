@@ -71,11 +71,13 @@ func main() {
 		accessToken = getEnv("SLACK_FLAREBOT_ACCESS_TOKEN")
 	} else {
 		token := slack.DecodeOAuthToken(getEnv("SLACK_FLAREBOT_ACCESS_TOKEN"))
+		fmt.Printf("token=%+v accessToken=%s
+\n", token, getEnv("SLACK_FLAREBOT_ACCESS_TOKEN"))
 		accessToken = token.AccessToken
 	}
 	domain := getEnv("SLACK_DOMAIN")
 	username := getEnv("SLACK_USERNAME")
-
+	fmt.Printf("accessToken=%s domain=%s username=%s\n", accessToken, domain, username)
 	client, err := slack.NewClient(accessToken, domain, username)
 	if err != nil {
 		panic(err)
