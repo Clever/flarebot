@@ -5,11 +5,11 @@ import (
 	"encoding/base64"
 	"encoding/gob"
 	"fmt"
+	"golang.org/x/oauth2"
 	"log"
+	"os"
 	"regexp"
 	"sync"
-
-	"golang.org/x/oauth2"
 
 	slk "github.com/nlopes/slack"
 )
@@ -54,7 +54,8 @@ func (c *Client) Stop() {
 }
 
 func (c *Client) CreateChannel(name string) (*slk.Channel, error) {
-	channel, err := c.API.CreateChannel(name)
+	api := slk.New(os.Getenv("SLACK_USER_ACCESS_TOKEN"))
+	channel, err := api.CreateChannel(name)
 	if err != nil {
 		fmt.Printf("Tried to create channel %s: error=%s\n", name, err)
 		return nil, err
