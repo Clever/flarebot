@@ -54,6 +54,7 @@ func (c *Client) Stop() {
 }
 
 func (c *Client) CreateChannel(name string) (*slk.Channel, error) {
+	fmt.Printf("Creating channel %s\n\n", name)
 	channel, err := c.API.CreateChannel(name)
 	if err != nil {
 		return nil, err
@@ -99,11 +100,12 @@ func (c *Client) handleMessage(msg *slk.MessageEvent) {
 	m := messageEventToMessage(msg, c.API, c.Send)
 
 	var theMatch *MessageHandler
-	fmt.Println()
+	fmt.Printf("MESSAGE=%+v\n", m)
 
 	c.mHandler.RLock()
 	for _, h := range c.handlers {
 		if h.Match(m) {
+			fmt.Printf("Matched! %+v\n", h)
 			theMatch = h
 			break
 		}
@@ -173,6 +175,7 @@ func (c *Client) start() {
 		// Otherwise it blocks forever
 		go rtm.ManageConnection()
 		for msg := range rtm.IncomingEvents {
+			// fmt.Printf("SLACK MSG:\n\n  msg=%+v\n\n", msg)
 			switch msg.Data.(type) {
 			case *slk.HelloEvent:
 				fmt.Println("Hello!")
@@ -211,7 +214,7 @@ func (c *Client) start() {
 					return
 				}
 			default:
-				fmt.Printf("Unexpected: %#v\n", msg.Data)
+				fmt.Printf("Unexpected: %+v\n", msg.Data)
 			}
 		}
 		c.wg.Done()
@@ -221,7 +224,6 @@ func (c *Client) start() {
 
 func NewClient(token, domain, username string) (*Client, error) {
 	api := slk.New(token)
-
 	users, err := api.GetUsers()
 	if err != nil {
 		return nil, err

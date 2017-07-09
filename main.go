@@ -88,7 +88,7 @@ func GetTicketFromCurrentChannel(client *slack.Client, JiraServer *jira.JiraServ
 	// then the ticket that matches
 	ticket, err := JiraServer.GetTicketByKey(channelName)
 
-	if err != nil || ticket.Fields.Project.ID != JiraServer.ProjectID {
+	if err != nil || ticket.Fields.Project.Key != JiraServer.ProjectKey {
 		return nil, errors.New("no ticket for this channel")
 	}
 
@@ -196,8 +196,8 @@ func main() {
 		Origin:      os.Getenv("JIRA_ORIGIN"),
 		Username:    os.Getenv("JIRA_USERNAME"),
 		Password:    os.Getenv("JIRA_PASSWORD"),
-		ProjectID:   os.Getenv("JIRA_PROJECT_ID"),
-		IssueTypeID: os.Getenv("JIRA_ISSUETYPE_ID"),
+		ProjectKey:  os.Getenv("JIRA_PROJECT_KEY"),
+		IssueType:   os.Getenv("JIRA_ISSUETYPE"),
 		PriorityIDs: strings.Split(os.Getenv("JIRA_PRIORITIES"), ","),
 	}
 
@@ -223,7 +223,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
+	client.API.SetDebug(true)
 	expectedChannel := os.Getenv("SLACK_CHANNEL")
 
 	go changeTopic(client, expectedChannel)
@@ -283,6 +283,7 @@ func main() {
 	client.Respond(fireFlareCommand.regexp, func(msg *slack.Message, params [][]string) {
 		// wrong channel?
 		if msg.Channel != expectedChannel {
+			fmt.Printf("Wrong channel: expected=%s actual=%s\n", expectedChannel, msg.Channel)
 			return
 		}
 
@@ -303,6 +304,7 @@ func main() {
 
 		author, _ := msg.AuthorUser()
 		assigneeUser, _ := JiraServer.GetUserByEmail(author.Profile.Email)
+
 		ticket, _ := JiraServer.CreateTicket(priority, topic, assigneeUser)
 
 		if ticket == nil {
