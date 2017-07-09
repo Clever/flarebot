@@ -55,7 +55,7 @@ type JiraService interface {
 	TicketUrl(ticketKey string) string
 	GetUserByEmail(email string) (*User, error)
 	GetTicketByKey(key string) (*Ticket, error)
-	CreateTicket(priority int, topic string, assignee string) (*Ticket, error)
+	CreateTicket(priority int, topic string, assignee *User) (*Ticket, error)
 	AssignTicketToUser(ticket *Ticket, user *User) error
 	DoTicketTransition(ticket *Ticket, transitionName string) error
 	SetDescription(ticket *Ticket, description string) error
@@ -147,7 +147,7 @@ func (server *JiraServer) GetTicketByKey(key string) (*Ticket, error) {
 	return &ticket, nil
 }
 
-func (server *JiraServer) CreateTicket(priority int, topic string, assignee string) (*Ticket, error) {
+func (server *JiraServer) CreateTicket(priority int, topic string, assignee *User) (*Ticket, error) {
 	// request JSON
 	request := map[string]interface{}{
 		"fields": &map[string]interface{}{
@@ -158,11 +158,11 @@ func (server *JiraServer) CreateTicket(priority int, topic string, assignee stri
 				"id": server.IssueTypeID,
 			},
 			"assignee": &map[string]interface{}{
-				"name": assignee,
+				"name": assignee.Name,
 			},
 			"summary": topic,
 			"priority": &map[string]interface{}{
-				"name": server.PriorityIDs[priority],
+				"id": server.PriorityIDs[priority],
 			},
 		},
 	}
@@ -175,7 +175,6 @@ func (server *JiraServer) CreateTicket(priority int, topic string, assignee stri
 	ticket.service = server
 
 	if err != nil {
-		fmt.Printf("ERROR CREATING JIRA TICKET\n  error=%s\n\n", err)
 		return nil, err
 	}
 

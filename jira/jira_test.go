@@ -1,4 +1,4 @@
-package jira_test
+package jira
 
 import (
 	//	"fmt"
@@ -7,8 +7,6 @@ import (
 
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/Clever/flarebot/jira"
 )
 
 //
@@ -32,8 +30,8 @@ var mockTransitionsContent = `{"expand":"transitions","transitions":[{"id":"161"
 // </TEST_DATA>
 //
 
-func CreateTestJiraServer() jira.JiraService {
-	return &jira.JiraServer{
+func CreateTestJiraServer() JiraService {
+	return &JiraServer{
 		Origin:      mockOrigin,
 		Username:    mockUsername,
 		Password:    mockPassword,
@@ -113,7 +111,7 @@ func TestCreateTicket(t *testing.T) {
 
 	testServer := CreateTestJiraServer()
 
-	theTicket, err := testServer.CreateTicket(0, "It's a problem", &jira.User{
+	theTicket, err := testServer.CreateTicket(0, "It's a problem", &User{
 		Name:         "alice.smith",
 		EmailAddress: "alice.smith@example.com",
 	})
@@ -141,17 +139,17 @@ func TestAssignTicketToUser(t *testing.T) {
 
 	testServer := CreateTestJiraServer()
 
-	err := testServer.AssignTicketToUser(&jira.Ticket{
+	err := testServer.AssignTicketToUser(&Ticket{
 		//		Url:        "https://mock.atlassian.net/issues/MOCK-ISSUE-ID",
 		Key: "MOCK-ISSUE-ID",
-		Fields: jira.TicketFields{
-			Project: jira.Project{
+		Fields: TicketFields{
+			Project: Project{
 				ID:  "MOCK-PROJECT-ID",
 				Key: "MOCK-PROJECT-KEY",
 			},
 		},
 	},
-		&jira.User{
+		&User{
 			Key:          "alice.smith",
 			Name:         "alice.smith",
 			EmailAddress: "alice.smith@example.com",
@@ -186,10 +184,10 @@ func TestDoTicketTransition(t *testing.T) {
 
 	testServer := CreateTestJiraServer()
 
-	err := testServer.DoTicketTransition(&jira.Ticket{
+	err := testServer.DoTicketTransition(&Ticket{
 		Key: "MOCK-ISSUE-ID",
-		Fields: jira.TicketFields{
-			Project: jira.Project{
+		Fields: TicketFields{
+			Project: Project{
 				ID:  "MOCK-PROJECT-ID",
 				Key: "MOCK-PROJECT-KEY",
 			},

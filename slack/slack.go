@@ -5,11 +5,11 @@ import (
 	"encoding/base64"
 	"encoding/gob"
 	"fmt"
-	"golang.org/x/oauth2"
 	"log"
-	"os"
 	"regexp"
 	"sync"
+
+	"golang.org/x/oauth2"
 
 	slk "github.com/nlopes/slack"
 )
@@ -54,10 +54,8 @@ func (c *Client) Stop() {
 }
 
 func (c *Client) CreateChannel(name string) (*slk.Channel, error) {
-	api := slk.New(os.Getenv("SLACK_USER_ACCESS_TOKEN"))
-	channel, err := api.CreateChannel(name)
+	channel, err := c.API.CreateChannel(name)
 	if err != nil {
-		fmt.Printf("Tried to create channel %s: error=%s\n", name, err)
 		return nil, err
 	} else {
 		return channel, nil
@@ -101,12 +99,12 @@ func (c *Client) handleMessage(msg *slk.MessageEvent) {
 	m := messageEventToMessage(msg, c.API, c.Send)
 
 	var theMatch *MessageHandler
+	fmt.Println()
 
 	c.mHandler.RLock()
 	for _, h := range c.handlers {
 		if h.Match(m) {
 			theMatch = h
-			fmt.Printf("> > Matched! theMatch=%s\n\n", h)
 			break
 		}
 	}
@@ -157,8 +155,7 @@ func (c *Client) start() {
 			case "message":
 				_, _, err := ws.PostMessage(msg.Channel, msg.Text, messageParameters)
 				if err != nil {
-					fmt.Printf("Failed to post message. message=%+v\n", msg)
-					fmt.Printf("Error=%s\n", err)
+					log.Fatalf("Failed to post message. %s\n", err.Error())
 				}
 			case "pin":
 				c.pinSlackMessage(msg.Channel, msg.Text)
@@ -180,10 +177,8 @@ func (c *Client) start() {
 			case *slk.HelloEvent:
 				fmt.Println("Hello!")
 			case *slk.MessageEvent:
-				fmt.Printf("MessageEvent: msg=%+v\n\n", msg)
 				c.handleMessage(msg.Data.(*slk.MessageEvent))
 			case *slk.RTMError:
-				fmt.Printf("Got error: msg=%+v\n", msg)
 				error := msg.Data.(*slk.RTMError)
 				fmt.Printf("Error: %d - %s\n", error.Code, error.Msg)
 			case *slk.UserTypingEvent, *slk.PresenceChangeEvent, slk.LatencyReport:
@@ -199,7 +194,7 @@ func (c *Client) start() {
 				data := msg.Data.(*slk.ChannelJoinedEvent)
 				fmt.Printf("Joined channel: %s (%s)\n", data.Channel.Name, data.Channel.ID)
 			case *slk.ConnectedEvent:
-				fmt.Printf("*** Connected to slack! ***\n")
+				fmt.Printf("Connected to slack!\n")
 			case *slk.ConnectingEvent:
 				// Ignore the Connecting events
 			case *slk.LatencyReport:
@@ -216,7 +211,7 @@ func (c *Client) start() {
 					return
 				}
 			default:
-				fmt.Printf("Unexpected:  msg=%#v\n", msg)
+				fmt.Printf("Unexpected: %#v\n", msg.Data)
 			}
 		}
 		c.wg.Done()
@@ -240,10 +235,8 @@ func NewClient(token, domain, username string) (*Client, error) {
 	}
 
 	rtm := api.NewRTM()
-	api.SetDebug(true)
 	client := &Client{API: api, rtm: rtm, Username: username, userId: userId}
 	client.start()
-
 	return client, nil
 }
 

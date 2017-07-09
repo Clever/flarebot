@@ -1,4 +1,4 @@
-package: github.com/Clever/flarebot
+package: github.com/ericavonb/flarebot
 import:
 - package: github.com/cpuguy83/go-md2man
   version: ^1.0.4

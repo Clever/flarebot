@@ -2,7 +2,7 @@ include golang.mk
 .DEFAULT_GOAL := test # override default goal set in library makefile
 
 SHELL := /bin/bash
-PKG ?= github.com/Clever/flarebot
+PKG ?= github.com/ericavonb/flarebot
 
 PKGS := $(shell go list ./... | grep -v /vendor)
 EXECUTABLE := flarebot

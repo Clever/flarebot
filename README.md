@@ -154,6 +154,4 @@ For the first problem, the approach we'll take is:
 
 # Deployment
 
-On Heroku
-
-If flarebot is down see the [flarebot runbook](https://clever.atlassian.net/wiki/display/ENG/Flarebot).
+Procfile provided for deployment on e.g. Heroku.

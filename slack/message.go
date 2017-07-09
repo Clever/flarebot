@@ -38,7 +38,7 @@ func (m *Message) Respond(msg string) {
 }
 
 func messageEventToMessage(msg *slk.MessageEvent, api *slk.Client, sender func(string, string)) *Message {
-	m := &Message{
+	return &Message{
 		AuthorId:   msg.User,
 		AuthorName: msg.Username,
 		Timestamp:  msg.Timestamp,
@@ -47,6 +47,4 @@ func messageEventToMessage(msg *slk.MessageEvent, api *slk.Client, sender func(s
 		api:        api,
 		sender:     sender,
 	}
-	fmt.Printf("Message: m=%+v\n\n", m)
-	return m
 }
