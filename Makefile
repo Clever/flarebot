@@ -2,7 +2,8 @@ include golang.mk
 .DEFAULT_GOAL := test # override default goal set in library makefile
 
 SHELL := /bin/bash
-PKG = github.com/Clever/flarebot
+PKG ?= github.com/ericavonb/flarebot
+
 PKGS := $(shell go list ./... | grep -v /vendor)
 EXECUTABLE := flarebot
 .PHONY: test $(PKGS) clean vendor
@@ -12,14 +13,14 @@ $(eval $(call golang-version-check,1.8))
 $(GOPATH)/bin/glide:
 	@go get github.com/Masterminds/glide
 
-all: test build
+all: install_deps test build
 
 test: $(PKGS)
 
-build:
-	go build -o bin/jira-cli github.com/Clever/flarebot/jira/testcmd
-	go build -o bin/slack-cli github.com/Clever/flarebot/slack/testcmd
-	go build -o bin/$(EXECUTABLE) $(PKG)
+build: install_deps
+	go build -o bin/jira-cli $(PKG)/jira/testcmd
+	go build -o bin/slack-cli $(PKG)/slack/testcmd
+	GOOS=linux go build -o bin/$(EXECUTABLE) $(PKG)
 
 install_deps: $(GOPATH)/bin/glide
 	@$(GOPATH)/bin/glide install

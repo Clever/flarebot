@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Clever/flarebot/jira"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/ericavonb/flarebot/jira"
 	"github.com/spf13/cobra"
 )
 

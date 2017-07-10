@@ -1,0 +1,16 @@
+name: flarebot-app
+version: 0.1.1
+description: Slack bot to help with incident reponse process
+keywords:
+- slack
+- bot
+- incident response
+- chatops
+home: https://github.com/ericavonb/flarebot
+sources:
+- https://github.com/ericavonb/flarebot
+- https://github.com/clever/flarebot
+maintainers:
+- name: Erica von Buelow
+  email: evb@coreos.com
+engine: gotpl

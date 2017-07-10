@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/Clever/flarebot/slack"
+	"github.com/ericavonb/flarebot/slack"
 	"github.com/spf13/cobra"
 )
 

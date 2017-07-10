@@ -1,0 +1,64 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ template "fullname" . }}
+  labels:
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+spec:
+  replicas: {{ .Values.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "fullname" . }}
+    spec:
+      imagePullSecrets:
+      - name: {{ .Values.image.pullSecret }}
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        env:
+          - name: SLACK_DOMAIN
+            value: "{{ .Values.config.slack.domain }}"
+          - name: SLACK_USERNAME
+            value: "{{ .Values.config.slack.username }}"
+          - name: SLACK_CLIENT_ID
+            value: "{{ .Values.config.slack.client_id }}"
+          - name: SLACK_CLIENT_SECRET
+            value: "{{ .Values.config.slack.client_secret }}"
+          - name: SLACK_LEGACY_TOKEN
+            value: true
+          - name: SLACK_FLAREBOT_ACCESS_TOKEN
+            value: "{{ .Values.config.slack.access_token}}"
+          - name: GOOGLE_DOMAIN
+            value: "{{ .Values.config.google.org_domain }}"
+          - name: GOOGLE_CLIENT_ID
+            value: "{{ .Values.config.google.client_id }}"
+          - name: GOOGLE_FLAREBOT_SERVICE_ACCOUNT_CONF
+            value: '{{ .Values.config.google.service_account_config }}'
+          - name: GOOGLE_TEMPLATE_DOC_ID
+            value: "{{ .Values.config.google.template_doc_id }}"
+          - name: JIRA_ORIGIN
+            value: "{{ .Values.config.jira.domain }}"
+          - name: JIRA_USERNAME
+            value: "{{ .Values.config.jira.username }}"
+          - name: JIRA_PASSWORD
+            value: "{{ .Values.config.jira.password }}"
+          - name: JIRA_PRIORITIES
+            value: "{{ .Values.config.jira.priorities }}"
+          - name: JIRA_PROJECT_ID
+            value: "{{ .Values.config.jira.project_id }}"
+          - name: JIRA_ISSUETYPE_ID
+            value: "{{ .Values.config.jira.issuetype_id }}"
+        ports:
+        - containerPort: {{ .Values.service.internalPort }}
+        livenessProbe:
+          httpGet:
+            path: /
+            port: {{ .Values.service.internalPort }}
+        readinessProbe:
+          httpGet:
+            path: /
+            port: {{ .Values.service.internalPort }}
+        resources:
+{{ toYaml .Values.resources | indent 12 }}

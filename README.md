@@ -37,7 +37,6 @@ The following environment variables are expected:
 
 * `GOOGLE_DOMAIN`: the domain name of your organization that Flarebot documents will be shared with, e.g. `clever.com`
 * `GOOGLE_CLIENT_ID`: Google OAuth app client ID
-* `GOOGLE_CLIENT_SECRET`: Google OAuth app client secret
 * `GOOGLE_FLAREBOT_SERVICE_ACCOUNT_CONF`: Google Service Account JSON configuration blob
 * `GOOGLE_TEMPLATE_DOC_ID`: the Google Doc ID for the template to copy as the Facts Doc.
 
@@ -79,7 +78,7 @@ Lists all commands
 ### Fire a Flare
 
 ```
-@flarebot: fire a flare p2 District 9 users cannot log in 
+@flarebot: fire a flare p2 District 9 users cannot log in
 @channel: OK, go chat in #flare-4242
 ```
 
@@ -154,6 +153,4 @@ For the first problem, the approach we'll take is:
 
 # Deployment
 
-On Heroku
-
-If flarebot is down see the [flarebot runbook](https://clever.atlassian.net/wiki/display/ENG/Flarebot).
+Procfile provided for deployment on e.g. Heroku.
