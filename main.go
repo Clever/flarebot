@@ -359,7 +359,7 @@ func main() {
 		}
 
 		// set up the Flare room
-		channel, err := client.CreateChannel(strings.ToLower(ticket.Key))
+		channel, err := client.CreateChannel(strings.ToLower(ticket.Key), topic)
 
 		if err != nil {
 			log.Fatalf("Couldn't create Flare channel: %s", err)
@@ -369,16 +369,9 @@ func main() {
 			client.Send("This is a RETROACTIVE Flare. All is well.", channel.ID)
 		}
 
-		client.API.SetChannelTopic(channel.ID, topic)
-
-		client.Send(fmt.Sprintf("JIRA ticket: %s", ticket.Url()), channel.ID)
-		client.Send(fmt.Sprintf("Facts docs: %s", doc.File.AlternateLink), channel.ID)
+		client.MessageAndPin(fmt.Sprintf("JIRA ticket: %s", ticket.Url()), channel.ID)
+		client.MessageAndPin(fmt.Sprintf("Facts docs: %s", doc.File.AlternateLink), channel.ID)
 		client.Send(fmt.Sprintf("Flare resources: %s", resources_url), channel.ID)
-
-		// Pin the most important messages. NOTE: that this is based on text
-		// matching, so the links need to be escaped to match
-		client.Pin(fmt.Sprintf("JIRA ticket: <%s>", ticket.Url()), channel.ID)
-		client.Pin(fmt.Sprintf("Facts docs: <%s>", doc.File.AlternateLink), channel.ID)
 
 		// send room-specific help
 		sendHelpMessage(client, JiraServer, channel.ID, false)

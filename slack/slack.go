@@ -5,11 +5,11 @@ import (
 	"encoding/base64"
 	"encoding/gob"
 	"fmt"
+	"golang.org/x/oauth2"
 	"log"
+	"os"
 	"regexp"
 	"sync"
-
-	"golang.org/x/oauth2"
 
 	slk "github.com/nlopes/slack"
 )
@@ -53,14 +53,19 @@ func (c *Client) Stop() {
 	c.wg.Wait()
 }
 
-func (c *Client) CreateChannel(name string) (*slk.Channel, error) {
+func (c *Client) CreateChannel(name, topic string) (*slk.Channel, error) {
 	fmt.Printf("Creating channel %s\n\n", name)
-	channel, err := c.API.CreateChannel(name)
+	api := slk.New(os.Getenv("SLACK_USER_ACCESS_TOKEN"))
+	channel, err := api.CreateChannel(name)
 	if err != nil {
 		return nil, err
-	} else {
-		return channel, nil
 	}
+	_, err = api.InviteUserToChannel(channel.ID, c.userId)
+	if err != nil {
+		return nil, err
+	}
+	_, err = api.SetChannelTopic(channel.ID, topic)
+	return channel, err
 }
 
 func (c *Client) Hear(pattern string, fn func(*Message, [][]string)) {
@@ -87,7 +92,22 @@ func (c *Client) Send(msg, channelId string) {
 		Type:    "message",
 	}
 }
+func (c *Client) MessageAndPin(msg, channelId string) {
+	channelID, timestamp, err := c.API.PostMessage(channelId, msg, slk.PostMessageParameters{})
+	if err != nil {
+		fmt.Printf("Error posting message: %s\n", err)
+		return
+	}
 
+	// Grab a reference to the message.
+	msgRef := slk.NewRefToMessage(channelID, timestamp)
+
+	// Add message pin to channel
+	if err := c.API.AddPin(channelID, msgRef); err != nil {
+		fmt.Printf("Error adding pin: %s\n", err)
+		return
+	}
+}
 func (c *Client) Pin(msg, channelId string) {
 	c.outgoing <- slk.OutgoingMessage{
 		Channel: channelId,
