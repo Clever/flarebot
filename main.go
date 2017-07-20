@@ -201,6 +201,11 @@ func main() {
 		PriorityIDs: strings.Split(os.Getenv("JIRA_PRIORITIES"), ","),
 	}
 
+	FlarebotUser, err := JiraServer.GetUserByEmail(JiraServer.Username)
+	if err != nil {
+		log.Fatalf("Failed to lookup flarebot user in jira: %s\n", err.Error())
+	}
+
 	// Google Docs service
 	googleDocsServer, err := googledocs.NewGoogleDocsServerWithServiceAccount(os.Getenv("GOOGLE_FLAREBOT_SERVICE_ACCOUNT_CONF"), os.Getenv("GOOGLE_TEMPLATE_DOC_ID"))
 	googleDomain := os.Getenv("GOOGLE_DOMAIN")
@@ -426,7 +431,7 @@ func main() {
 		// If the ticket is unassigned, attempt to assign it to the person
 		// mitigating the flare. Since this is just for convenience, it
 		// doesn't matter if it fails
-		if ticket.Fields.Assignee.Name == "flarebot" {
+		if ticket.Fields.Assignee.Name == FlarebotUser.Name {
 			author, _ := msg.AuthorUser()
 			assigneeUser, _ := JiraServer.GetUserByEmail(author.Profile.Email)
 			JiraServer.AssignTicketToUser(ticket, assigneeUser)
