@@ -102,7 +102,8 @@ func (c *Client) handleMessage(msg *slk.MessageEvent) {
 	fmt.Println()
 
 	// If the message is from us, don't do anything
-	if m.AuthorName == c.Username {
+	author, _ := m.Author()
+	if author == c.Username {
 		return
 	}
 
