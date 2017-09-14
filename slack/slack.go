@@ -101,6 +101,11 @@ func (c *Client) handleMessage(msg *slk.MessageEvent) {
 	var theMatch *MessageHandler
 	fmt.Println()
 
+	// If the message is from us, don't do anything
+	if m.AuthorName == c.Username {
+		return
+	}
+
 	c.mHandler.RLock()
 	for _, h := range c.handlers {
 		if h.Match(m) {
