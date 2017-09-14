@@ -98,6 +98,11 @@ func (c *Client) Pin(msg, channelId string) {
 func (c *Client) handleMessage(msg *slk.MessageEvent) {
 	m := messageEventToMessage(msg, c.API, c.Send)
 
+	// ignore messages that the client sent themselves
+	if m.AuthorName == c.Username {
+		return
+	}
+
 	var theMatch *MessageHandler
 	fmt.Println()
 
