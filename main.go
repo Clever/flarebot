@@ -190,6 +190,11 @@ func changeTopic(client *slack.Client, channel string) {
 	}
 }
 
+func sendReminderMessage(client *slack.Client, channel string) {
+	time.Sleep(5 * time.Minute)
+	client.Send("Have you tried rolling back, scaling or restarting?", channel)
+}
+
 func main() {
 	// JIRA service
 	var JiraServer *jira.JiraServer = &jira.JiraServer{
@@ -390,6 +395,8 @@ func main() {
 
 		// let people know that they can rename this channel
 		client.Send(fmt.Sprintf("NOTE: you can rename this channel as long as it starts with %s", channel.Name), channel.ID)
+
+		go sendReminderMessage(client, channel.ID)
 
 		// announce the specific Flare room in the overall Flares room
 		target := "channel"
