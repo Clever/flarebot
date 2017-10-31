@@ -158,11 +158,10 @@ func timeTillNextTopicChange(now time.Time) time.Duration {
 
 func swapNextTeam(topic string) string {
 	teams := []string{
-		"#oncall-apps",
-		"#oncall-classrooms",
-		"#oncall-districts",
+		"#oncall-secure-sync",
+		"#oncall-instant-login",
 		"#oncall-infra",
-		"#oncall-ip",
+		"#oncall-ip-and-de",
 	}
 	for i, team := range teams {
 		if strings.Contains(topic, team) {
