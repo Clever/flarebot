@@ -47,28 +47,23 @@ func TestTimeTillNextTopicChange(t *testing.T) {
 }
 
 func TestSwapNextTeam(t *testing.T) {
-	topic := "TO FIRE A FLARE:  @flarebot fire a flare <p0/p1/p2> <reason>.   To page engineering: http://clvr.in/1ZPzN4u.  If you don’t know what team to page, page #oncall-apps."
-	expected := "TO FIRE A FLARE:  @flarebot fire a flare <p0/p1/p2> <reason>.   To page engineering: http://clvr.in/1ZPzN4u.  If you don’t know what team to page, page #oncall-classrooms."
+	topic := "TO FIRE A FLARE:  @flarebot fire a flare <p0/p1/p2> <reason>. If you don’t know what team to page, page #oncall-secure-sync."
+	expected := "TO FIRE A FLARE:  @flarebot fire a flare <p0/p1/p2> <reason>. If you don’t know what team to page, page #oncall-instant-login."
 	actual := swapNextTeam(topic)
 	assert.Equal(t, expected, actual)
 
-	topic = "TO FIRE A FLARE:  @flarebot fire a flare <p0/p1/p2> <reason>.   To page engineering: http://clvr.in/1ZPzN4u.  If you don’t know what team to page, page #oncall-classrooms."
-	expected = "TO FIRE A FLARE:  @flarebot fire a flare <p0/p1/p2> <reason>.   To page engineering: http://clvr.in/1ZPzN4u.  If you don’t know what team to page, page #oncall-districts."
+	topic = "TO FIRE A FLARE:  @flarebot fire a flare <p0/p1/p2> <reason>. If you don’t know what team to page, page #oncall-instant-login."
+	expected = "TO FIRE A FLARE:  @flarebot fire a flare <p0/p1/p2> <reason>. If you don’t know what team to page, page #oncall-infra."
 	actual = swapNextTeam(topic)
 	assert.Equal(t, expected, actual)
 
-	topic = "TO FIRE A FLARE:  @flarebot fire a flare <p0/p1/p2> <reason>.   To page engineering: http://clvr.in/1ZPzN4u.  If you don’t know what team to page, page #oncall-districts."
-	expected = "TO FIRE A FLARE:  @flarebot fire a flare <p0/p1/p2> <reason>.   To page engineering: http://clvr.in/1ZPzN4u.  If you don’t know what team to page, page #oncall-infra."
+	topic = "TO FIRE A FLARE:  @flarebot fire a flare <p0/p1/p2> <reason>. If you don’t know what team to page, page #oncall-infra."
+	expected = "TO FIRE A FLARE:  @flarebot fire a flare <p0/p1/p2> <reason>. If you don’t know what team to page, page #oncall-ip-and-de."
 	actual = swapNextTeam(topic)
 	assert.Equal(t, expected, actual)
 
-	topic = "TO FIRE A FLARE:  @flarebot fire a flare <p0/p1/p2> <reason>.   To page engineering: http://clvr.in/1ZPzN4u.  If you don’t know what team to page, page #oncall-infra."
-	expected = "TO FIRE A FLARE:  @flarebot fire a flare <p0/p1/p2> <reason>.   To page engineering: http://clvr.in/1ZPzN4u.  If you don’t know what team to page, page #oncall-ip."
-	actual = swapNextTeam(topic)
-	assert.Equal(t, expected, actual)
-
-	topic = "TO FIRE A FLARE:  @flarebot fire a flare <p0/p1/p2> <reason>.   To page engineering: http://clvr.in/1ZPzN4u.  If you don’t know what team to page, page #oncall-ip."
-	expected = "TO FIRE A FLARE:  @flarebot fire a flare <p0/p1/p2> <reason>.   To page engineering: http://clvr.in/1ZPzN4u.  If you don’t know what team to page, page #oncall-apps."
+	topic = "TO FIRE A FLARE:  @flarebot fire a flare <p0/p1/p2> <reason>. If you don’t know what team to page, page #oncall-ip-and-de."
+	expected = "TO FIRE A FLARE:  @flarebot fire a flare <p0/p1/p2> <reason>. If you don’t know what team to page, page #oncall-secure-sync."
 	actual = swapNextTeam(topic)
 	assert.Equal(t, expected, actual)
 }
