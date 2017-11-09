@@ -7,10 +7,8 @@ PKGS := $(shell go list ./... | grep -v /vendor)
 EXECUTABLE := flarebot
 .PHONY: test $(PKGS) clean vendor
 
-$(eval $(call golang-version-check,1.8))
+$(eval $(call golang-version-check,1.9))
 
-$(GOPATH)/bin/glide:
-	@go get github.com/Masterminds/glide
 
 all: test build
 
@@ -21,8 +19,6 @@ build:
 	go build -o bin/slack-cli github.com/Clever/flarebot/slack/testcmd
 	go build -o bin/$(EXECUTABLE) $(PKG)
 
-install_deps: $(GOPATH)/bin/glide
-	@$(GOPATH)/bin/glide install
 
 # for later, when I want to go strict
 #$(PKGS): golang-test-all-strict-deps
@@ -31,5 +27,7 @@ install_deps: $(GOPATH)/bin/glide
 $(PKGS): golang-test-all-deps
 	$(call golang-test-all,$@)
 
-vendor: golang-godep-vendor-deps
-	$(call golang-godep-vendor,$(PKGS))
+
+
+install_deps: golang-dep-vendor-deps
+	$(call golang-dep-vendor)
