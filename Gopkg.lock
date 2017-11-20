@@ -2,12 +2,6 @@
 
 
 [[projects]]
-  branch = "master"
-  name = "github.com/Clever/flarebot"
-  packages = ["googledocs","jira","slack"]
-  revision = "27f3963c97e6ef1ec1ba81c7ece3a0c1f113ac6b"
-
-[[projects]]
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   revision = "5215b55f46b2b919f50a1df0eaa5886afe4e3b3d"
@@ -82,6 +76,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "060f133baffb7320a9899e5e038742f59eaeb83f4f9e98bb91943dde561e0605"
+  inputs-digest = "8bfb5a442d7d61b64edf9b8e223324bf076b1b0007db49faabf72b90d7e3f466"
   solver-name = "gps-cdcl"
   solver-version = 1
