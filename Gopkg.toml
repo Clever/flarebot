@@ -33,6 +33,7 @@
 
 [[constraint]]
   name = "github.com/nlopes/slack"
+  revision = "107290b5bbaf3e634833346bb4ff389b1c782bc7"
 
 [[constraint]]
   name = "github.com/spf13/cobra"
