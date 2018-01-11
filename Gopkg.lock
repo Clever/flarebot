@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  branch = "master"
+  name = "github.com/Clever/flarebot"
+  packages = ["googledocs","jira","slack"]
+  revision = "2650cfe31260100b418977b9864dea6b428ac920"
+
+[[projects]]
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   revision = "5215b55f46b2b919f50a1df0eaa5886afe4e3b3d"
@@ -25,7 +31,8 @@
 [[projects]]
   name = "github.com/nlopes/slack"
   packages = ["."]
-  revision = "67c6939dd382a85ccbbe2f2e133fd245fe424098"
+  revision = "c86337c0ef2486a15edd804355d9c73d2f2caed1"
+  version = "v0.1.0"
 
 [[projects]]
   name = "github.com/pmezard/go-difflib"
@@ -76,6 +83,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8bfb5a442d7d61b64edf9b8e223324bf076b1b0007db49faabf72b90d7e3f466"
+  inputs-digest = "060f133baffb7320a9899e5e038742f59eaeb83f4f9e98bb91943dde561e0605"
   solver-name = "gps-cdcl"
   solver-version = 1
