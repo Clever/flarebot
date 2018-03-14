@@ -158,7 +158,7 @@ func main() {
 	resources_url := os.Getenv("FLARE_RESOURCES_URL")
 
 	// Link to status page
-	status_page_url := os.Getenv("STATUS_PAGE_URL")
+	status_page_login_url := os.Getenv("STATUS_PAGE_LOGIN_URL")
 
 	// Slack connection params
 	var accessToken string
@@ -322,14 +322,14 @@ func main() {
 		client.Send(fmt.Sprintf("JIRA ticket: %s", ticket.Url()), channel.ID)
 		client.Send(fmt.Sprintf("Facts docs: %s", doc.File.AlternateLink), channel.ID)
 		client.Send(fmt.Sprintf("Flare resources: %s", resources_url), channel.ID)
-		client.Send(fmt.Sprintf("Manage status page: %s", status_page_url), channel.ID)
+		client.Send(fmt.Sprintf("Manage status page: %s", status_page_login_url), channel.ID)
 		client.Send(fmt.Sprintf("Remember: Rollback, Scale or Restart!"), channel.ID)
 
 		// Pin the most important messages. NOTE: that this is based on text
 		// matching, so the links need to be escaped to match
 		client.Pin(fmt.Sprintf("JIRA ticket: <%s>", ticket.Url()), channel.ID)
 		client.Pin(fmt.Sprintf("Facts docs: <%s>", doc.File.AlternateLink), channel.ID)
-		client.Pin(fmt.Sprintf("Manage status page: <%s>", status_page_url), channel.ID)
+		client.Pin(fmt.Sprintf("Manage status page: <%s>", status_page_login_url), channel.ID)
 		client.Pin(fmt.Sprintf("Remember: Rollback, Scale or Restart!"), channel.ID)
 
 		// send room-specific help
