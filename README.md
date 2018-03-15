@@ -66,6 +66,12 @@ Flarebot provides links to documentation when a Flare is fired. This link is con
 
 * `FLARE_RESOURCES_URL`: a URL of Flare-handling resources, checklists, etc.
 
+### Status Page
+
+Flarebot provides a link to Clever's status page management when a Flare is fired. This link is configured as
+
+* `STATUS_PAGE_URL`: a URL for the status page.
+
 ## Usage
 
 ### Help
@@ -79,7 +85,7 @@ Lists all commands
 ### Fire a Flare
 
 ```
-@flarebot: fire a flare p2 District 9 users cannot log in 
+@flarebot: fire a flare p2 District 9 users cannot log in
 @channel: OK, go chat in #flare-4242
 ```
 

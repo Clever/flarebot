@@ -128,9 +128,9 @@ func sendHelpMessage(client *slack.Client, jiraServer *jira.JiraServer, channel 
 	}
 }
 
-func sendReminderMessage(client *slack.Client, channel string) {
-	time.Sleep(5 * time.Minute)
-	client.Send("Have you tried rolling back, scaling or restarting?", channel)
+func sendReminderMessage(client *slack.Client, channel string, message string, delay time.Duration) {
+	time.Sleep(delay)
+	client.Send(message, channel)
 }
 
 func main() {
@@ -155,6 +155,9 @@ func main() {
 
 	// Link to flare resources
 	resources_url := os.Getenv("FLARE_RESOURCES_URL")
+
+	// Link to status page
+	status_page_login_url := os.Getenv("STATUS_PAGE_LOGIN_URL")
 
 	// Slack connection params
 	var accessToken string
@@ -318,12 +321,14 @@ func main() {
 		client.Send(fmt.Sprintf("JIRA ticket: %s", ticket.Url()), channel.ID)
 		client.Send(fmt.Sprintf("Facts docs: %s", doc.File.AlternateLink), channel.ID)
 		client.Send(fmt.Sprintf("Flare resources: %s", resources_url), channel.ID)
+		client.Send(fmt.Sprintf("Manage status page: %s", status_page_login_url), channel.ID)
 		client.Send(fmt.Sprintf("Remember: Rollback, Scale or Restart!"), channel.ID)
 
 		// Pin the most important messages. NOTE: that this is based on text
 		// matching, so the links need to be escaped to match
 		client.Pin(fmt.Sprintf("JIRA ticket: <%s>", ticket.Url()), channel.ID)
 		client.Pin(fmt.Sprintf("Facts docs: <%s>", doc.File.AlternateLink), channel.ID)
+		client.Pin(fmt.Sprintf("Manage status page: <%s>", status_page_login_url), channel.ID)
 		client.Pin(fmt.Sprintf("Remember: Rollback, Scale or Restart!"), channel.ID)
 
 		// send room-specific help
@@ -332,7 +337,8 @@ func main() {
 		// let people know that they can rename this channel
 		client.Send(fmt.Sprintf("NOTE: you can rename this channel as long as it starts with %s", channel.Name), channel.ID)
 
-		go sendReminderMessage(client, channel.ID)
+		go sendReminderMessage(client, channel.ID, "Are users affected? Consider creating an incident on the status page.", 2*time.Minute)
+		go sendReminderMessage(client, channel.ID, "Have you tried rolling back, scaling or restarting?", 5*time.Minute)
 
 		// announce the specific Flare room in the overall Flares room
 		target := "channel"
