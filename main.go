@@ -239,9 +239,13 @@ func main() {
 
 		// retroactive?
 		isRetroactive := strings.Contains(msg.Text, "retroactive")
+		// preemptive?
+		isPreemptive := strings.Contains(msg.Text, "emptive") // this could be pre-emptive, or preemptive
 
 		if isRetroactive {
 			client.Send("OK, let me quietly set up the Flare documents. Nobody freak out, this is retroactive.", msg.Channel)
+		} else if isPreemptive {
+			client.Send("OK, let me quietly set up the Flare documents. Nobody freak out, this is preemptive.", msg.Channel)
 		} else {
 			client.Send("OK, let me get my flaregun", msg.Channel)
 		}
@@ -343,7 +347,7 @@ func main() {
 		// announce the specific Flare room in the overall Flares room
 		target := "channel"
 
-		if isRetroactive {
+		if isRetroactive || isPreemptive {
 			author, _ := msg.AuthorUser()
 			target = author.Name
 		}
