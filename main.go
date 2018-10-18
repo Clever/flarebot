@@ -79,7 +79,10 @@ var channelNameRegexp = regexp.MustCompile("^([^-]+-[^-]+)(?:-.+)")
 
 func GetTicketFromCurrentChannel(client *slack.Client, JiraServer *jira.JiraServer, channelID string) (*jira.Ticket, error) {
 	// first more info about the channel
-	channel, _ := client.API.GetChannelInfo(channelID)
+	channel, err := client.API.GetChannelInfo(channelID)
+	if err != nil {
+		return nil, err
+	}
 
 	// we want to allow channel renaming as long as prefix remains #flare-<id>
 	channelName := channelNameRegexp.ReplaceAllString(channel.Name, "$1")
