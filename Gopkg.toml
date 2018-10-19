@@ -44,3 +44,7 @@
 
 [[constraint]]
   name = "google.golang.org/api"
+
+[metadata.heroku]
+  root-package = "github.com/Clever/flarebot"
+  go-version = "go1.10.3"
