@@ -47,4 +47,4 @@
 
 [metadata.heroku]
   root-package = "github.com/Clever/flarebot"
-  go-version = "go1.10.3"
+  go-version = "go1.10.4"
