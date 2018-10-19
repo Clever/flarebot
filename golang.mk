@@ -63,7 +63,7 @@ golang-verify-no-self-references:
 	@if grep -q -i "$(REF)" Gopkg.lock; then echo "Error: Gopkg.lock includes a self-reference ($(REF)), which is not allowed. See: https://github.com/golang/dep/issues/1690" && exit 1; fi;
 	@if grep -q -i "$(REF)" Gopkg.toml; then echo "Error: Gopkg.toml includes a self-reference ($(REF)), which is not allowed. See: https://github.com/golang/dep/issues/1690" && exit 1; fi;
 
-golang-dep-vendor-deps: bin/dep golang-verify-no-self-references
+golang-dep-vendor-deps: bin/dep
 
 # golang-godep-vendor is a target for saving dependencies with the dep tool
 # to the vendor/ directory. All nested vendor/ directories are deleted via
