@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Clever/flarebot/googledocs"
+	// "github.com/Clever/flarebot/googledocs"
 	"github.com/Clever/flarebot/jira"
 	"github.com/Clever/flarebot/slack"
 )
@@ -153,8 +153,8 @@ func main() {
 	}
 
 	// Google Docs service
-	googleDocsServer, err := googledocs.NewGoogleDocsServerWithServiceAccount(os.Getenv("GOOGLE_FLAREBOT_SERVICE_ACCOUNT_CONF"), os.Getenv("GOOGLE_TEMPLATE_DOC_ID"))
-	googleDomain := os.Getenv("GOOGLE_DOMAIN")
+	// googleDocsServer, err := googledocs.NewGoogleDocsServerWithServiceAccount(os.Getenv("GOOGLE_FLAREBOT_SERVICE_ACCOUNT_CONF"), os.Getenv("GOOGLE_TEMPLATE_DOC_ID"))
+	// googleDomain := os.Getenv("GOOGLE_DOMAIN")
 
 	// Link to flare resources
 	resources_url := os.Getenv("FLARE_RESOURCES_URL")
@@ -218,18 +218,18 @@ func main() {
 		fmt.Println(ticket)
 
 		// verify that we can open and parse the FLARE template
-		googleDocID := os.Getenv("GOOGLE_TEMPLATE_DOC_ID")
-		doc, err := googleDocsServer.GetDoc(googleDocID)
-		if err != nil {
-			client.Send(fmt.Sprintf("Unable to find the Google Doc Flare Template. ID: %s", googleDocID), msg.Channel)
-			return
-		}
+		// googleDocID := os.Getenv("GOOGLE_TEMPLATE_DOC_ID")
+		// doc, err := googleDocsServer.GetDoc(googleDocID)
+		// if err != nil {
+		// 	client.Send(fmt.Sprintf("Unable to find the Google Doc Flare Template. ID: %s", googleDocID), msg.Channel)
+		// 	return
+		// }
 
-		_, err = googleDocsServer.GetDocContent(doc, "text/html")
-		if err != nil {
-			client.Send(fmt.Sprintf("Unable to get Google Doc Content for ID: %s", googleDocID), msg.Channel)
-			return
-		}
+		// _, err = googleDocsServer.GetDocContent(doc, "text/html")
+		// if err != nil {
+		// 	client.Send(fmt.Sprintf("Unable to get Google Doc Content for ID: %s", googleDocID), msg.Channel)
+		// 	return
+		// }
 	})
 
 	client.Respond(fireFlareCommand.regexp, func(msg *slack.Message, params [][]string) {
@@ -282,35 +282,35 @@ func main() {
 		if isRetroactive {
 			docTitle = fmt.Sprintf("%s - Retroactive", docTitle)
 		}
+		// Kill Google Docs integration to fix flarebot
+		// doc, err := googleDocsServer.CreateFromTemplate(docTitle, map[string]string{
+		// 	"jira_key": ticket.Key,
+		// })
 
-		doc, err := googleDocsServer.CreateFromTemplate(docTitle, map[string]string{
-			"jira_key": ticket.Key,
-		})
+		// if err != nil {
+		// 	log.Fatalf("No google doc created: %s", err)
+		// }
 
-		if err != nil {
-			log.Fatalf("No google doc created: %s", err)
-		}
+		// // update the google doc with some basic information
+		// html, err := googleDocsServer.GetDocContent(doc, "text/html")
 
-		// update the google doc with some basic information
-		html, err := googleDocsServer.GetDocContent(doc, "text/html")
+		// html = strings.Replace(html, "[FLARE-KEY]", ticket.Key, 1)
+		// html = strings.Replace(html, "[START-DATE]", currentTimeStringInTZ("US/Pacific"), 1)
+		// html = strings.Replace(html, "[SUMMARY]", topic, 1)
 
-		html = strings.Replace(html, "[FLARE-KEY]", ticket.Key, 1)
-		html = strings.Replace(html, "[START-DATE]", currentTimeStringInTZ("US/Pacific"), 1)
-		html = strings.Replace(html, "[SUMMARY]", topic, 1)
+		// googleDocsServer.UpdateDocContent(doc, html)
 
-		googleDocsServer.UpdateDocContent(doc, html)
+		// // update permissions
+		// if err = googleDocsServer.ShareDocWithDomain(doc, googleDomain, "writer"); err != nil {
+		// 	log.Fatalf("Couldn't share google doc: %s", err)
+		// }
 
-		// update permissions
-		if err = googleDocsServer.ShareDocWithDomain(doc, googleDomain, "writer"); err != nil {
-			log.Fatalf("Couldn't share google doc: %s", err)
-		}
-
-		// Add the doc to the Jira ticket
-		desc := fmt.Sprintf("[Facts Doc|%s]", doc.File.AlternateLink)
-		err = JiraServer.SetDescription(ticket, desc)
-		if err != nil {
-			fmt.Printf("Failed to set description for %s: %s\n", ticket.Key, err.Error())
-		}
+		// // Add the doc to the Jira ticket
+		// desc := fmt.Sprintf("[Facts Doc|%s]", doc.File.AlternateLink)
+		// err = JiraServer.SetDescription(ticket, desc)
+		// if err != nil {
+		// 	fmt.Printf("Failed to set description for %s: %s\n", ticket.Key, err.Error())
+		// }
 
 		// set up the Flare room
 		channel, err := client.CreateChannel(strings.ToLower(ticket.Key))
@@ -326,7 +326,7 @@ func main() {
 		client.API.SetChannelTopic(channel.ID, topic)
 
 		client.Send(fmt.Sprintf("JIRA ticket: %s", ticket.Url()), channel.ID)
-		client.Send(fmt.Sprintf("Facts docs: %s", doc.File.AlternateLink), channel.ID)
+		// client.Send(fmt.Sprintf("Facts docs: %s", doc.File.AlternateLink), channel.ID)
 		client.Send(fmt.Sprintf("Flare resources: %s", resources_url), channel.ID)
 		client.Send(fmt.Sprintf("Manage status page: %s", status_page_login_url), channel.ID)
 		client.Send(fmt.Sprintf("Remember: Rollback, Scale or Restart!"), channel.ID)
@@ -334,7 +334,7 @@ func main() {
 		// Pin the most important messages. NOTE: that this is based on text
 		// matching, so the links need to be escaped to match
 		client.Pin(fmt.Sprintf("JIRA ticket: <%s>", ticket.Url()), channel.ID)
-		client.Pin(fmt.Sprintf("Facts docs: <%s>", doc.File.AlternateLink), channel.ID)
+		// client.Pin(fmt.Sprintf("Facts docs: <%s>", doc.File.AlternateLink), channel.ID)
 		client.Pin(fmt.Sprintf("Manage status page: <%s>", status_page_login_url), channel.ID)
 		client.Pin(fmt.Sprintf("Remember: Rollback, Scale or Restart!"), channel.ID)
 
