@@ -344,7 +344,7 @@ func main() {
 		// let people know that they can rename this channel
 		client.Send(fmt.Sprintf("NOTE: you can rename this channel as long as it starts with %s", channel.Name), channel.ID)
 
-		go sendReminderMessage(client, channel.ID, "Are users affected? Consider creating an incident on the status page.", 2*time.Minute)
+		go sendReminderMessage(client, channel.ID, "Are users affected? Consider creating an incident on the status page and updating the title.", 2*time.Minute)
 		go sendReminderMessage(client, channel.ID, "Have you tried rolling back, scaling or restarting? (consider SSO version too)", 5*time.Minute)
 
 		// announce the specific Flare room in the overall Flares room
