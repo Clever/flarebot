@@ -259,10 +259,10 @@ func main() {
 
 		author, _ := msg.AuthorUser()
 		assigneeUser, _ := JiraServer.GetUserByEmail(author.Profile.Email)
-		ticket, _ := JiraServer.CreateTicket(priority, topic, assigneeUser)
+		ticket, err := JiraServer.CreateTicket(priority, topic, assigneeUser)
 
-		if ticket == nil {
-			panic("no JIRA ticket created")
+		if ticket == nil || err != nil {
+			panic(fmt.Sprintf("no JIRA ticket created: %s", err.Error()))
 		}
 
 		// start progress on the ticket
