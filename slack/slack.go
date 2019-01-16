@@ -207,6 +207,14 @@ func (c *Client) start() {
 				// Ignore the Latency reports
 			case *slk.ReconnectUrlEvent:
 				// Ignore the reconnect URLS
+			case *slk.PinAddedEvent:
+				// Ignore the pin added events
+			case *slk.ChannelMarkedEvent:
+				// Ignore the channel marked events.
+			case *slk.PrefChangeEvent:
+				// Ignore the preference changed events
+			case *slk.MemberJoinedChannelEvent, *slk.MemberLeftChannelEvent:
+				// Ignore the join/leave channel events.
 			case *slk.DisconnectedEvent:
 				// If the disconnect was intentional, exit the goroutine
 				data := msg.Data.(*slk.DisconnectedEvent)
