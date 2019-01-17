@@ -76,6 +76,10 @@ var otherChannelCommands = []*command{helpAllCommand}
 
 // #flare-179-foo-bar --> #flare-179
 var channelNameRegexp = regexp.MustCompile("^([^-]+-[^-]+)(?:-.+)")
+var flareChannelNamePrefix *regexp.Regexp
+
+// Save slack history doc IDs in a cache for more efficient lookups
+var slackHistoryDocCache = map[string]string{}
 
 func GetTicketFromCurrentChannel(client *slack.Client, JiraServer *jira.JiraServer, channelID string) (*jira.Ticket, error) {
 	// first more info about the channel
@@ -97,9 +101,71 @@ func GetTicketFromCurrentChannel(client *slack.Client, JiraServer *jira.JiraServ
 	return ticket, nil
 }
 
+func recordSlackHistory(client *slack.Client, googleDocsServer googledocs.GoogleDocsService, message *slack.Message) error {
+	docID, ok := slackHistoryDocCache[message.Channel]
+	if !ok {
+		channel, err := client.API.GetChannelInfo(message.Channel)
+		if err != nil {
+			return err
+		}
+
+		docID = ""
+		if flareChannelNamePrefix.Match([]byte(channel.Name)) {
+			// Get pinned link
+			historyPin := regexp.MustCompile("^Slack log: (.*)")
+			pin, err := client.GetPin(historyPin, message.Channel)
+			if err != nil {
+				// There might not be a pin in this channel, just ignore it.
+				fmt.Printf("Unable to get Slack log pin for %s, skipping\n", channel.Name)
+			} else {
+				docID = historyPin.FindStringSubmatch(pin)[1]
+			}
+		}
+
+		// And write it back for caching purposes.
+		slackHistoryDocCache[message.Channel] = docID
+	}
+
+	// If there's no doc, don't record the history. Not all channels need one.
+	if docID == "" {
+		return nil
+	}
+
+	var formattedTime = strings.Split(message.Timestamp, ".")[0]
+	unixTime, err := strconv.ParseInt(formattedTime, 10, 64)
+	if err == nil {
+		formattedTime = timeStringInTZ(time.Unix(unixTime, 0), "US/Pacific")
+	}
+	author, err := message.Author()
+	if err != nil {
+		author = message.AuthorId
+	}
+
+	data := []interface{}{
+		message.Timestamp,
+		formattedTime,
+		author,
+		message.Text,
+	}
+
+	err = googleDocsServer.AppendSheetContent(docID, data)
+	if err != nil {
+		fmt.Println("Unable to write slack history")
+		return err
+	}
+
+	return nil
+}
+
+// currentTimeStringInTZ returns the current time in a TZ format as determined by Golang's "Location" type.
 func currentTimeStringInTZ(tz string) string {
+	return timeStringInTZ(time.Now(), tz)
+}
+
+// timeStringInTZ returns the time in a TZ format as determined by Golang's "Location" type.
+func timeStringInTZ(t time.Time, tz string) string {
 	tzLocation, _ := time.LoadLocation(tz)
-	return time.Now().In(tzLocation).Format(time.RFC3339)
+	return t.In(tzLocation).Format(time.RFC3339)
 }
 
 func sendCommandsHelpMessage(client *slack.Client, channel string, commands []*command) {
@@ -152,9 +218,19 @@ func main() {
 		log.Fatalf("Failed to lookup flarebot user in jira: %s\n", err.Error())
 	}
 
+	jiraProject, err := JiraServer.GetProjectByKey(os.Getenv("JIRA_PROJECT_ID"))
+	if err != nil {
+		log.Fatalf("no JIRA project exists with id %s: %s", os.Getenv("JIRA_PROJECT_ID"), err.Error())
+	}
+
+	flareChannelNamePrefix = regexp.MustCompile(fmt.Sprintf("^%s-", strings.ToLower(jiraProject.Name)))
+
 	// Google Docs service
-	googleDocsServer, err := googledocs.NewGoogleDocsServerWithServiceAccount(os.Getenv("GOOGLE_FLAREBOT_SERVICE_ACCOUNT_CONF"), os.Getenv("GOOGLE_TEMPLATE_DOC_ID"))
+	googleDocsServer, err := googledocs.NewGoogleDocsServerWithServiceAccount(os.Getenv("GOOGLE_FLAREBOT_SERVICE_ACCOUNT_CONF"))
 	googleDomain := os.Getenv("GOOGLE_DOMAIN")
+
+	googleFlareDocID := os.Getenv("GOOGLE_TEMPLATE_DOC_ID")
+	googleSlackHistoryDocID := os.Getenv("GOOGLE_SLACK_HISTORY_DOC_ID")
 
 	// Link to flare resources
 	resources_url := os.Getenv("FLARE_RESOURCES_URL")
@@ -173,7 +249,12 @@ func main() {
 	domain := os.Getenv("SLACK_DOMAIN")
 	username := os.Getenv("SLACK_USERNAME")
 
-	client, err := slack.NewClient(accessToken, domain, username)
+	var client *slack.Client
+	recordSlackHistoryCallback := func(message *slack.Message) error {
+		return recordSlackHistory(client, googleDocsServer, message)
+	}
+
+	client, err = slack.NewClient(accessToken, domain, username, recordSlackHistoryCallback)
 	if err != nil {
 		panic(err)
 	}
@@ -218,16 +299,28 @@ func main() {
 		fmt.Println(ticket)
 
 		// verify that we can open and parse the FLARE template
-		googleDocID := os.Getenv("GOOGLE_TEMPLATE_DOC_ID")
-		doc, err := googleDocsServer.GetDoc(googleDocID)
+		flareDoc, err := googleDocsServer.GetDoc(googleFlareDocID)
 		if err != nil {
-			client.Send(fmt.Sprintf("Unable to find the Google Doc Flare Template. ID: %s", googleDocID), msg.Channel)
+			client.Send(fmt.Sprintf("Unable to find the Google Doc Flare Template. ID: %s", googleFlareDocID), msg.Channel)
 			return
 		}
 
-		_, err = googleDocsServer.GetDocContent(doc, "text/html")
+		_, err = googleDocsServer.GetDocContent(flareDoc, "text/html")
 		if err != nil {
-			client.Send(fmt.Sprintf("Unable to get Google Doc Content for ID: %s", googleDocID), msg.Channel)
+			client.Send(fmt.Sprintf("Unable to get Google Doc Content for ID: %s", googleFlareDocID), msg.Channel)
+			return
+		}
+
+		// And Slack History template
+		slackHistoryDoc, err := googleDocsServer.GetDoc(googleSlackHistoryDocID)
+		if err != nil {
+			client.Send(fmt.Sprintf("Unable to find the Google Slack History Doc Template. ID: %s", googleSlackHistoryDocID), msg.Channel)
+			return
+		}
+
+		_, err = googleDocsServer.GetDocContent(slackHistoryDoc, "text/html")
+		if err != nil {
+			client.Send(fmt.Sprintf("Unable to get Google Doc Content for ID: %s", googleSlackHistoryDocID), msg.Channel)
 			return
 		}
 	})
@@ -259,6 +352,7 @@ func main() {
 
 		author, _ := msg.AuthorUser()
 		assigneeUser, _ := JiraServer.GetUserByEmail(author.Profile.Email)
+
 		ticket, err := JiraServer.CreateTicket(priority, topic, assigneeUser)
 
 		if ticket == nil || err != nil {
@@ -277,36 +371,50 @@ func main() {
 			err = JiraServer.DoTicketTransition(ticket, "Mitigate")
 		}
 
-		docTitle := fmt.Sprintf("%s: %s", ticket.Key, topic)
+		flareDocTitle := fmt.Sprintf("%s: %s", ticket.Key, topic)
 
 		if isRetroactive {
-			docTitle = fmt.Sprintf("%s - Retroactive", docTitle)
+			flareDocTitle = fmt.Sprintf("%s - Retroactive", flareDocTitle)
 		}
 
-		doc, err := googleDocsServer.CreateFromTemplate(docTitle, map[string]string{
+		flareDoc, err := googleDocsServer.CreateFromTemplate(flareDocTitle, googleFlareDocID, map[string]string{
 			"jira_key": ticket.Key,
 		})
 
 		if err != nil {
-			log.Fatalf("No google doc created: %s", err)
+			log.Fatalf("No google flare doc created: %s", err)
+		}
+
+		slackHistoryDocTitle := fmt.Sprintf("%s: %s (Slack History)", ticket.Key, topic)
+		slackHistoryDoc, err := googleDocsServer.CreateFromTemplate(slackHistoryDocTitle, googleSlackHistoryDocID, map[string]string{
+			"jira_key": ticket.Key,
+		})
+
+		if err != nil {
+			log.Fatalf("No google slack history doc created: %s", err)
 		}
 
 		// update the google doc with some basic information
-		html, err := googleDocsServer.GetDocContent(doc, "text/html")
+		html, err := googleDocsServer.GetDocContent(flareDoc, "text/html")
 
 		html = strings.Replace(html, "[FLARE-KEY]", ticket.Key, 1)
 		html = strings.Replace(html, "[START-DATE]", currentTimeStringInTZ("US/Pacific"), 1)
 		html = strings.Replace(html, "[SUMMARY]", topic, 1)
+		html = strings.Replace(html, "[HISTORY-DOC]",
+			fmt.Sprintf(`<a href="%s">%s</a>`, slackHistoryDoc.File.AlternateLink, slackHistoryDocTitle), 1)
 
-		googleDocsServer.UpdateDocContent(doc, html)
+		googleDocsServer.UpdateDocContent(flareDoc, html)
 
 		// update permissions
-		if err = googleDocsServer.ShareDocWithDomain(doc, googleDomain, "writer"); err != nil {
-			log.Fatalf("Couldn't share google doc: %s", err)
+		if err = googleDocsServer.ShareDocWithDomain(flareDoc, googleDomain, "writer"); err != nil {
+			log.Fatalf("Couldn't share google flare doc: %s", err)
+		}
+		if err = googleDocsServer.ShareDocWithDomain(slackHistoryDoc, googleDomain, "writer"); err != nil {
+			log.Fatalf("Couldn't share google slack history doc: %s", err)
 		}
 
 		// Add the doc to the Jira ticket
-		desc := fmt.Sprintf("[Facts Doc|%s]", doc.File.AlternateLink)
+		desc := fmt.Sprintf("[Facts Doc|%s]    [Slack History|%s]", flareDoc.File.AlternateLink, slackHistoryDoc.File.AlternateLink)
 		err = JiraServer.SetDescription(ticket, desc)
 		if err != nil {
 			fmt.Printf("Failed to set description for %s: %s\n", ticket.Key, err.Error())
@@ -314,6 +422,8 @@ func main() {
 
 		// set up the Flare room
 		channel, err := client.CreateChannel(strings.ToLower(ticket.Key))
+
+		slackHistoryDocCache[channel.ID] = slackHistoryDoc.File.Id
 
 		if err != nil {
 			log.Fatalf("Couldn't create Flare channel: %s", err)
@@ -326,7 +436,8 @@ func main() {
 		client.API.SetChannelTopic(channel.ID, topic)
 
 		client.Send(fmt.Sprintf("JIRA ticket: %s", ticket.Url()), channel.ID)
-		client.Send(fmt.Sprintf("Facts docs: %s", doc.File.AlternateLink), channel.ID)
+		client.Send(fmt.Sprintf("Facts docs: %s", flareDoc.File.AlternateLink), channel.ID)
+		client.Send(fmt.Sprintf("Slack log: %s", slackHistoryDoc.File.Id), channel.ID)
 		client.Send(fmt.Sprintf("Flare resources: %s", resources_url), channel.ID)
 		client.Send(fmt.Sprintf("Manage status page: %s", status_page_login_url), channel.ID)
 		client.Send(fmt.Sprintf("Remember: Rollback, Scale or Restart!"), channel.ID)
@@ -334,7 +445,8 @@ func main() {
 		// Pin the most important messages. NOTE: that this is based on text
 		// matching, so the links need to be escaped to match
 		client.Pin(fmt.Sprintf("JIRA ticket: <%s>", ticket.Url()), channel.ID)
-		client.Pin(fmt.Sprintf("Facts docs: <%s>", doc.File.AlternateLink), channel.ID)
+		client.Pin(fmt.Sprintf("Facts docs: <%s>", flareDoc.File.AlternateLink), channel.ID)
+		client.Pin(fmt.Sprintf("Slack log: %s", slackHistoryDoc.File.Id), channel.ID)
 		client.Pin(fmt.Sprintf("Manage status page: <%s>", status_page_login_url), channel.ID)
 		client.Pin(fmt.Sprintf("Remember: Rollback, Scale or Restart!"), channel.ID)
 

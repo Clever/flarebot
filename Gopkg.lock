@@ -66,10 +66,7 @@
 
 [[projects]]
   name = "golang.org/x/net"
-  packages = [
-    "context",
-    "context/ctxhttp"
-  ]
+  packages = ["context"]
   revision = "ea47fc708ee3e20177f3ca3716217c4ab75942cb"
 
 [[projects]]
@@ -87,11 +84,13 @@
   name = "google.golang.org/api"
   packages = [
     "drive/v2",
+    "gensupport",
     "googleapi",
     "googleapi/internal/uritemplates",
-    "internal"
+    "sheets/v4"
   ]
-  revision = "bce17bfa8913f8777eb5221beb361c03edf5817e"
+  revision = "19e022d8cf43ce81f046bae8cc18c5397cc7732f"
+  version = "v0.1.0"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -120,6 +119,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9a3963f2262d284e1cfb58e2de34e4098f986cd62a277ffb34487af445bb8abc"
+  inputs-digest = "df16c4a91e23bd9a403c80f5782e6015c9a042942aac9d4673019be86bb8f076"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -76,7 +76,7 @@ func main() {
 	domain := getEnv("SLACK_DOMAIN")
 	username := getEnv("SLACK_USERNAME")
 
-	client, err := slack.NewClient(accessToken, domain, username)
+	client, err := slack.NewClient(accessToken, domain, username, nil)
 	if err != nil {
 		panic(err)
 	}

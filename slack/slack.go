@@ -29,6 +29,8 @@ type Client struct {
 
 	outgoing chan slk.OutgoingMessage
 	forever  chan interface{}
+
+	recordHistoryCallback func(message *Message) error
 }
 
 func (c *Client) Run() error {
@@ -95,11 +97,24 @@ func (c *Client) Pin(msg, channelId string) {
 	}
 }
 
+func (c *Client) GetPin(pattern *regexp.Regexp, channelID string) (string, error) {
+	items, _, err := c.API.ListPins(channelID)
+	if err != nil {
+		return "", err
+	}
+	for _, m := range items {
+		fmt.Println(m.Message)
+		if pattern.Match([]byte(m.Message.Text)) {
+			return m.Message.Text, nil
+		}
+	}
+	return "", nil
+}
+
 func (c *Client) handleMessage(msg *slk.MessageEvent) {
 	m := messageEventToMessage(msg, c.API, c.Send)
 
 	var theMatch *MessageHandler
-	fmt.Println()
 
 	// If the message is from us, don't do anything
 	author, _ := m.Author()
@@ -119,6 +134,12 @@ func (c *Client) handleMessage(msg *slk.MessageEvent) {
 	if theMatch != nil {
 		theMatch.Handle(m)
 	}
+
+	// Also record flare-channel history to a doc
+	if c.recordHistoryCallback == nil {
+		return
+	}
+	c.recordHistoryCallback(m)
 }
 
 func (c *Client) pinSlackMessage(channelId, msg string) {
@@ -233,7 +254,7 @@ func (c *Client) start() {
 	}(c.rtm)
 }
 
-func NewClient(token, domain, username string) (*Client, error) {
+func NewClient(token, domain, username string, historyCallback func(message *Message) error) (*Client, error) {
 	api := slk.New(token)
 
 	users, err := api.GetUsers()
@@ -249,7 +270,7 @@ func NewClient(token, domain, username string) (*Client, error) {
 	}
 
 	rtm := api.NewRTM()
-	client := &Client{API: api, rtm: rtm, Username: username, userId: userId}
+	client := &Client{API: api, rtm: rtm, Username: username, userId: userId, recordHistoryCallback: historyCallback}
 	client.start()
 	return client, nil
 }
