@@ -26,7 +26,8 @@ type GoogleDocsService interface {
 	GetDoc(fileID string) (*Doc, error)
 	GetDocContent(doc *Doc, reltype string) (string, error)
 	UpdateDocContent(doc *Doc, content string) error
-	AppendSheetContent(id string, values []interface{}) error
+	GetSheetContent(doc *Doc) (*sheets.ValueRange, error)
+	AppendSheetContent(doc *Doc, values []interface{}) error
 }
 
 type GoogleDocsServer struct {
@@ -193,10 +194,17 @@ func (server *GoogleDocsServer) UpdateDocContent(doc *Doc, content string) error
 	return nil
 }
 
+func (server *GoogleDocsServer) GetSheetContent(doc *Doc) (*sheets.ValueRange, error) {
+	return server.sheetService.Spreadsheets.Values.
+		Get(doc.File.Id, "Sheet1").
+		ValueRenderOption("FORMATTED_VALUE").DateTimeRenderOption("SERIAL_NUMBER").
+		Context(context.TODO()).Do()
+}
+
 // AppendSheetContent appends a new row to the end of the sheet.
-func (server *GoogleDocsServer) AppendSheetContent(id string, values []interface{}) error {
+func (server *GoogleDocsServer) AppendSheetContent(doc *Doc, values []interface{}) error {
 	_, err := server.sheetService.Spreadsheets.Values.
-		Append(id, "Sheet1", &sheets.ValueRange{MajorDimension: "ROWS", Values: [][]interface{}{values}}).
+		Append(doc.File.Id, "Sheet1", &sheets.ValueRange{MajorDimension: "ROWS", Values: [][]interface{}{values}}).
 		ValueInputOption("USER_ENTERED").InsertDataOption("INSERT_ROWS").Context(context.TODO()).Do()
 	return err
 }
