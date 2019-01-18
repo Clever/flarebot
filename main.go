@@ -148,7 +148,13 @@ func recordSlackHistory(client *slack.Client, googleDocsServer googledocs.Google
 		message.Text,
 	}
 
-	err = googleDocsServer.AppendSheetContent(docID, data)
+	doc, err := googleDocsServer.GetDoc(docID)
+	if err != nil {
+		fmt.Println("Unable to find slack history doc")
+		return err
+	}
+
+	err = googleDocsServer.AppendSheetContent(doc, data)
 	if err != nil {
 		fmt.Println("Unable to write slack history")
 		return err
@@ -318,7 +324,7 @@ func main() {
 			return
 		}
 
-		_, err = googleDocsServer.GetDocContent(slackHistoryDoc, "text/html")
+		_, err = googleDocsServer.GetSheetContent(slackHistoryDoc)
 		if err != nil {
 			client.Send(fmt.Sprintf("Unable to get Google Doc Content for ID: %s", googleSlackHistoryDocID), msg.Channel)
 			return
