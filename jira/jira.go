@@ -147,6 +147,17 @@ func (server *JiraServer) GetTicketByKey(key string) (*Ticket, error) {
 	return &ticket, nil
 }
 
+func (server *JiraServer) GetProjectByKey(key string) (*Project, error) {
+	var project Project
+	err := server.DoRequest("GET", fmt.Sprintf("/rest/api/2/project/%s", key), nil, &project)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &project, nil
+}
+
 func (server *JiraServer) CreateTicket(priority int, topic string, assignee *User) (*Ticket, error) {
 	// request JSON
 	request := map[string]interface{}{

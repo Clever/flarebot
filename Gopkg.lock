@@ -30,9 +30,18 @@
 
 [[projects]]
   name = "github.com/nlopes/slack"
+  packages = [
+    ".",
+    "slackutilsx"
+  ]
+  revision = "b9033a72a20bf84563485e86a2adbea4bf265804"
+  version = "v0.4.0"
+
+[[projects]]
+  name = "github.com/pkg/errors"
   packages = ["."]
-  revision = "8ab4d0b364ef1e9af5d102531da20d5ec902b6c4"
-  version = "v0.2.0"
+  revision = "ba968bfe8b2f7e042a574c888954fccecfa385b4"
+  version = "v0.8.1"
 
 [[projects]]
   name = "github.com/pmezard/go-difflib"
@@ -57,32 +66,59 @@
 
 [[projects]]
   name = "golang.org/x/net"
-  packages = ["context","context/ctxhttp"]
+  packages = ["context"]
   revision = "ea47fc708ee3e20177f3ca3716217c4ab75942cb"
 
 [[projects]]
   name = "golang.org/x/oauth2"
-  packages = [".","google","internal","jws","jwt"]
+  packages = [
+    ".",
+    "google",
+    "internal",
+    "jws",
+    "jwt"
+  ]
   revision = "2fbf3d7329d847b125188ad64b68cfb1f548938a"
 
 [[projects]]
   name = "google.golang.org/api"
-  packages = ["drive/v2","googleapi","googleapi/internal/uritemplates","internal"]
-  revision = "bce17bfa8913f8777eb5221beb361c03edf5817e"
+  packages = [
+    "drive/v2",
+    "gensupport",
+    "googleapi",
+    "googleapi/internal/uritemplates",
+    "sheets/v4"
+  ]
+  revision = "19e022d8cf43ce81f046bae8cc18c5397cc7732f"
+  version = "v0.1.0"
 
 [[projects]]
   name = "google.golang.org/appengine"
-  packages = [".","internal","internal/app_identity","internal/base","internal/datastore","internal/log","internal/modules","internal/remote_api","internal/urlfetch","urlfetch"]
+  packages = [
+    ".",
+    "internal",
+    "internal/app_identity",
+    "internal/base",
+    "internal/datastore",
+    "internal/log",
+    "internal/modules",
+    "internal/remote_api",
+    "internal/urlfetch",
+    "urlfetch"
+  ]
   revision = "e951d3868b377b14f4e60efa3a301532ee3c1ebf"
 
 [[projects]]
   name = "google.golang.org/cloud"
-  packages = ["compute/metadata","internal"]
+  packages = [
+    "compute/metadata",
+    "internal"
+  ]
   revision = "9fdfebf8027334a2f0f583591507f08b0ab166d8"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4bc0377910bbf4c945e9fd00e003d423d570e146b4540979d79fc84117e4bb99"
+  inputs-digest = "df16c4a91e23bd9a403c80f5782e6015c9a042942aac9d4673019be86bb8f076"
   solver-name = "gps-cdcl"
   solver-version = 1

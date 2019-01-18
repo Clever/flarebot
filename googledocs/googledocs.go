@@ -12,6 +12,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/drive/v2"
+	"google.golang.org/api/sheets/v4"
 )
 
 type Doc struct {
@@ -19,24 +20,25 @@ type Doc struct {
 }
 
 type GoogleDocsService interface {
-	CreateFromTemplate(title string, properties map[string]string) (*Doc, error)
+	CreateFromTemplate(title string, templateDocID string, properties map[string]string) (*Doc, error)
 	SetDocPermissionTypeRole(doc *Doc, permissionType string, permissionRole string) error
 	ShareDocWithDomain(doc *Doc, domain string, permissionRole string) error
 	GetDoc(fileID string) (*Doc, error)
 	GetDocContent(doc *Doc, reltype string) (string, error)
 	UpdateDocContent(doc *Doc, content string) error
+	AppendSheetContent(id string, values []interface{}) error
 }
 
 type GoogleDocsServer struct {
-	clientID      string
-	clientSecret  string
-	accessToken   *oauth2.Token
-	client        *http.Client
-	service       *drive.Service
-	templateDocID string
+	clientID     string
+	clientSecret string
+	accessToken  *oauth2.Token
+	client       *http.Client
+	service      *drive.Service
+	sheetService *sheets.Service
 }
 
-func NewGoogleDocsServerWithServiceAccount(jsonConfigString string, templateDocID string) (*GoogleDocsServer, error) {
+func NewGoogleDocsServerWithServiceAccount(jsonConfigString string) (*GoogleDocsServer, error) {
 	jsonBytes := []byte(jsonConfigString)
 
 	conf, err := google.JWTConfigFromJSON(jsonBytes, drive.DriveScope)
@@ -53,14 +55,19 @@ func NewGoogleDocsServerWithServiceAccount(jsonConfigString string, templateDocI
 		return nil, err
 	}
 
+	sheetService, err := sheets.New(oauthClient)
+	if err != nil {
+		return nil, err
+	}
+
 	return &GoogleDocsServer{
-		client:        oauthClient,
-		service:       service,
-		templateDocID: templateDocID,
+		client:       oauthClient,
+		service:      service,
+		sheetService: sheetService,
 	}, nil
 }
 
-func NewGoogleDocsServer(clientID string, clientSecret string, accessToken *oauth2.Token, templateDocID string) (*GoogleDocsServer, error) {
+func NewGoogleDocsServer(clientID string, clientSecret string, accessToken *oauth2.Token) (*GoogleDocsServer, error) {
 	var config = &oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
@@ -78,16 +85,15 @@ func NewGoogleDocsServer(clientID string, clientSecret string, accessToken *oaut
 	}
 
 	return &GoogleDocsServer{
-		clientID:      clientID,
-		clientSecret:  clientSecret,
-		accessToken:   accessToken,
-		client:        oauthClient,
-		service:       service,
-		templateDocID: templateDocID,
+		clientID:     clientID,
+		clientSecret: clientSecret,
+		accessToken:  accessToken,
+		client:       oauthClient,
+		service:      service,
 	}, nil
 }
 
-func (server *GoogleDocsServer) CreateFromTemplate(title string, properties map[string]string) (*Doc, error) {
+func (server *GoogleDocsServer) CreateFromTemplate(title string, templateDocID string, properties map[string]string) (*Doc, error) {
 	// add metadata properties
 	propertiesArray := make([]*drive.Property, 0, len(properties))
 	if properties != nil {
@@ -105,7 +111,7 @@ func (server *GoogleDocsServer) CreateFromTemplate(title string, properties map[
 		Properties: propertiesArray,
 	}
 
-	file, err := server.service.Files.Copy(server.templateDocID, &drive.File{
+	file, err := server.service.Files.Copy(templateDocID, &drive.File{
 		Title: title,
 	}).Do()
 
@@ -181,7 +187,16 @@ func (server *GoogleDocsServer) GetDocContent(doc *Doc, reltype string) (string,
 	return string(bytes), nil
 }
 
+// UpdateDocContent update the content in a doc, replacing the entire file with the new (html) body.
 func (server *GoogleDocsServer) UpdateDocContent(doc *Doc, content string) error {
 	server.service.Files.Update(doc.File.Id, doc.File).Media(strings.NewReader(content)).Do()
 	return nil
+}
+
+// AppendSheetContent appends a new row to the end of the sheet.
+func (server *GoogleDocsServer) AppendSheetContent(id string, values []interface{}) error {
+	_, err := server.sheetService.Spreadsheets.Values.
+		Append(id, "Sheet1", &sheets.ValueRange{MajorDimension: "ROWS", Values: [][]interface{}{values}}).
+		ValueInputOption("USER_ENTERED").InsertDataOption("INSERT_ROWS").Context(context.TODO()).Do()
+	return err
 }

@@ -29,6 +29,8 @@ type Client struct {
 
 	outgoing chan slk.OutgoingMessage
 	forever  chan interface{}
+
+	recordHistoryCallback func(message *Message) error
 }
 
 func (c *Client) Run() error {
@@ -95,11 +97,24 @@ func (c *Client) Pin(msg, channelId string) {
 	}
 }
 
+func (c *Client) GetPin(pattern *regexp.Regexp, channelID string) (string, error) {
+	items, _, err := c.API.ListPins(channelID)
+	if err != nil {
+		return "", err
+	}
+	for _, m := range items {
+		fmt.Println(m.Message)
+		if pattern.Match([]byte(m.Message.Text)) {
+			return m.Message.Text, nil
+		}
+	}
+	return "", nil
+}
+
 func (c *Client) handleMessage(msg *slk.MessageEvent) {
 	m := messageEventToMessage(msg, c.API, c.Send)
 
 	var theMatch *MessageHandler
-	fmt.Println()
 
 	// If the message is from us, don't do anything
 	author, _ := m.Author()
@@ -119,6 +134,12 @@ func (c *Client) handleMessage(msg *slk.MessageEvent) {
 	if theMatch != nil {
 		theMatch.Handle(m)
 	}
+
+	// Also record flare-channel history to a doc
+	if c.recordHistoryCallback == nil {
+		return
+	}
+	c.recordHistoryCallback(m)
 }
 
 func (c *Client) pinSlackMessage(channelId, msg string) {
@@ -207,6 +228,14 @@ func (c *Client) start() {
 				// Ignore the Latency reports
 			case *slk.ReconnectUrlEvent:
 				// Ignore the reconnect URLS
+			case *slk.PinAddedEvent:
+				// Ignore the pin added events
+			case *slk.ChannelMarkedEvent:
+				// Ignore the channel marked events.
+			case *slk.PrefChangeEvent:
+				// Ignore the preference changed events
+			case *slk.MemberJoinedChannelEvent, *slk.MemberLeftChannelEvent:
+				// Ignore the join/leave channel events.
 			case *slk.DisconnectedEvent:
 				// If the disconnect was intentional, exit the goroutine
 				data := msg.Data.(*slk.DisconnectedEvent)
@@ -225,7 +254,7 @@ func (c *Client) start() {
 	}(c.rtm)
 }
 
-func NewClient(token, domain, username string) (*Client, error) {
+func NewClient(token, domain, username string, historyCallback func(message *Message) error) (*Client, error) {
 	api := slk.New(token)
 
 	users, err := api.GetUsers()
@@ -241,7 +270,7 @@ func NewClient(token, domain, username string) (*Client, error) {
 	}
 
 	rtm := api.NewRTM()
-	client := &Client{API: api, rtm: rtm, Username: username, userId: userId}
+	client := &Client{API: api, rtm: rtm, Username: username, userId: userId, recordHistoryCallback: historyCallback}
 	client.start()
 	return client, nil
 }
