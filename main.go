@@ -570,7 +570,9 @@ func main() {
 		}
 
 		// should be taking commands here, and didn't understand
-		client.Send("I'm sorry, I didn't understand that command.", msg.Channel)
+		client.Send(`I'm sorry, I didn't understand that command.
+			Usage: @flarebot fire a flare <p0|p1|p2> [pre-emptive|retroactive] <problem>
+		`, msg.Channel)
 	})
 
 	panic(client.Run())
