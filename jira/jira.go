@@ -126,7 +126,7 @@ func (server *JiraServer) TicketUrl(ticketKey string) string {
 
 func (server *JiraServer) GetUserByEmail(email string) (*User, error) {
 	var users []User
-	err := server.DoRequest("GET", fmt.Sprintf("/rest/api/2/user/search?username=%s", email), nil, &users)
+	err := server.DoRequest("GET", fmt.Sprintf("/rest/api/2/user/search?query=%s", email), nil, &users)
 
 	if err != nil {
 		return nil, err
