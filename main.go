@@ -462,7 +462,11 @@ func main() {
 		// let people know that they can rename this channel
 		client.Send(fmt.Sprintf("NOTE: you can rename this channel as long as it starts with %s", channel.Name), channel.ID)
 
-		go sendReminderMessage(client, channel.ID, "Are users affected? Consider creating an incident on the status page and updating the title.", 2*time.Minute)
+		// Some folks want a specific reminder to check for customer impact. It's early to invite them, but it's easier than timing a delay, or clicking the "invite" button programatically.
+		client.API.InviteUserToChannel(channel.ID, "k8")
+		client.API.InviteUserToChannel(channel.ID, "alexander")
+		go sendReminderMessage(client, channel.ID, "Are users affected? Consider creating an incident on the status page and updating the title. Ask Customer Solutions if we have received any Zendesk tickets related to this Flare. (cc @k8, @alexander)", 2*time.Minute)
+
 		go sendReminderMessage(client, channel.ID, "Have you tried rolling back, scaling or restarting? (consider SSO version too)", 5*time.Minute)
 
 		// announce the specific Flare room in the overall Flares room
