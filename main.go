@@ -420,7 +420,7 @@ func main() {
 		}
 
 		// Add the doc to the Jira ticket
-		desc := fmt.Sprintf("[Facts Doc|%s]    [Slack History|%s]", flareDoc.File.AlternateLink, slackHistoryDoc.File.AlternateLink)
+		desc := fmt.Sprintf("[Flare Doc|%s]    [Slack History|%s]", flareDoc.File.AlternateLink, slackHistoryDoc.File.AlternateLink)
 		err = JiraServer.SetDescription(ticket, desc)
 		if err != nil {
 			fmt.Printf("Failed to set description for %s: %s\n", ticket.Key, err.Error())
@@ -442,7 +442,7 @@ func main() {
 		client.API.SetChannelTopic(channel.ID, topic)
 
 		client.Send(fmt.Sprintf("JIRA ticket: %s", ticket.Url()), channel.ID)
-		client.Send(fmt.Sprintf("Facts docs: %s", flareDoc.File.AlternateLink), channel.ID)
+		client.Send(fmt.Sprintf("Flare doc: %s", flareDoc.File.AlternateLink), channel.ID)
 		client.Send(fmt.Sprintf("Slack log: %s", slackHistoryDoc.File.Id), channel.ID)
 		client.Send(fmt.Sprintf("Flare resources: %s", resources_url), channel.ID)
 		client.Send(fmt.Sprintf("Manage status page: %s", status_page_login_url), channel.ID)
@@ -451,7 +451,7 @@ func main() {
 		// Pin the most important messages. NOTE: that this is based on text
 		// matching, so the links need to be escaped to match
 		client.Pin(fmt.Sprintf("JIRA ticket: <%s>", ticket.Url()), channel.ID)
-		client.Pin(fmt.Sprintf("Facts docs: <%s>", flareDoc.File.AlternateLink), channel.ID)
+		client.Pin(fmt.Sprintf("Flare doc: <%s>", flareDoc.File.AlternateLink), channel.ID)
 		client.Pin(fmt.Sprintf("Slack log: %s", slackHistoryDoc.File.Id), channel.ID)
 		client.Pin(fmt.Sprintf("Manage status page: <%s>", status_page_login_url), channel.ID)
 		client.Pin(fmt.Sprintf("Remember: Rollback, Scale or Restart!"), channel.ID)
