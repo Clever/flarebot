@@ -66,7 +66,6 @@ func TestGetUserByEmail(t *testing.T) {
 	assert.True(t, jiraServiceCalled)
 
 	assert.NoError(t, err)
-	assert.Equal(t, theUser.Key, "alice.smith")
 	assert.Equal(t, theUser.Name, "alice.smith")
 	assert.Equal(t, theUser.EmailAddress, "alice.smith@example.com")
 }
@@ -152,7 +151,6 @@ func TestAssignTicketToUser(t *testing.T) {
 		},
 	},
 		&jira.User{
-			Key:          "alice.smith",
 			Name:         "alice.smith",
 			EmailAddress: "alice.smith@example.com",
 		})
