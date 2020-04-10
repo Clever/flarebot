@@ -27,7 +27,7 @@ type transitionResponse struct {
 }
 
 type User struct {
-	Key          string `json:"key"`
+	AccountId    string `json:"accountId"`
 	Name         string `json:"name"`
 	EmailAddress string `json:"emailAddress"`
 }
@@ -205,7 +205,7 @@ func (server *JiraServer) AssignTicketToUser(ticket *Ticket, user *User) error {
 	request := map[string]interface{}{
 		"fields": &map[string]interface{}{
 			"assignee": &map[string]interface{}{
-				"name": user.Name,
+				"accountId": user.AccountId,
 			},
 		},
 	}
