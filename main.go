@@ -467,7 +467,7 @@ func main() {
 		client.API.InviteUserToChannel(channel.ID, "U0W9V5UQG")
 		// alexander
 		client.API.InviteUserToChannel(channel.ID, "U1T5Y5YRJ")
-		go sendReminderMessage(client, channel.ID, fmt.Sprintf("Do you know which services are affected? If not you can generate a service failure diagram.\nExample input below, or see https://github.com/Clever/dependency-failure-diagram-generator\n```\nark submit -e production dependency-failure-diagram-generator:master '{ \"root_app\": \"clever-com-router\", \"timestamps\": [\"%s\"], \"slack_channel_id\": \"%s\" }'\n```",
+		go sendReminderMessage(client, channel.ID, fmt.Sprintf("Do you know which services are affected? If not you can generate a service failure diagram.\nExample input below, or see https://github.com/Clever/dependency-failure-diagram-generator\n```\nark submit -e production dependency-failure-diagram-generator:master '{ \"root_apps\": [\"clever-com-router\"], \"timestamps\": [\"%s\"], \"slack_channel_id\": \"%s\" }'\n```",
 			time.Now().Round(time.Minute).Format(time.RFC3339), channel.ID), 1*time.Minute)
 		go sendReminderMessage(client, channel.ID, "Are users affected? Consider creating an incident on the status page and updating the title. Ask Customer Solutions if we have received any Zendesk tickets related to this Flare. (cc @k8, @alexander)", 2*time.Minute)
 		go sendReminderMessage(client, channel.ID, "Are the right people in the flare channel? Consider using the /page Slack command.", 3*time.Minute)
