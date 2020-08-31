@@ -296,13 +296,11 @@ func main() {
 		client.Send(fmt.Sprintf("this channel is %s", channel.Name), msg.Channel)
 
 		sampleTicketKey := "flare-165"
-		ticket, err := JiraServer.GetTicketByKey(sampleTicketKey)
+		_, err = JiraServer.GetTicketByKey(sampleTicketKey)
 		if err != nil {
 			client.Send(fmt.Sprintf("Unable to find JIRA ticket by key: %s", sampleTicketKey), msg.Channel)
 			return
 		}
-
-		fmt.Println(ticket)
 
 		// verify that we can open and parse the FLARE template
 		flareDoc, err := googleDocsServer.GetDoc(googleFlareDocID)
@@ -428,12 +426,11 @@ func main() {
 
 		// set up the Flare room
 		channel, err := client.CreateChannel(strings.ToLower(ticket.Key))
-
-		slackHistoryDocCache[channel.ID] = slackHistoryDoc.File.Id
-
 		if err != nil {
 			log.Fatalf("Couldn't create Flare channel: %s", err)
 		}
+
+		slackHistoryDocCache[channel.ID] = slackHistoryDoc.File.Id
 
 		if isRetroactive {
 			client.Send("This is a RETROACTIVE Flare. All is well.", channel.ID)
