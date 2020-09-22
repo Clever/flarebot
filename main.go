@@ -271,7 +271,6 @@ func main() {
 		author, err := msg.AuthorUser()
 		if err != nil {
 			client.Send("Unable to determine author of Slack message", msg.Channel)
-			return
 		}
 		client.Send(fmt.Sprintf("I see you're using the test command. Excellent: %s", author.Profile.Email), msg.Channel)
 
@@ -282,7 +281,6 @@ func main() {
 		user, err := JiraServer.GetUserByEmail(author.Profile.Email)
 		if err != nil {
 			client.Send(fmt.Sprintf("Unable to determine JIRA user by email: %s", author.Profile.Email), msg.Channel)
-			return
 		}
 
 		client.Send(fmt.Sprintf("JIRA username is %s", user.Name), msg.Channel)
@@ -290,7 +288,6 @@ func main() {
 		channel, err := client.API.GetChannelInfo(msg.Channel)
 		if err != nil {
 			client.Send("Unable to determine channel info", msg.Channel)
-			return
 		}
 
 		client.Send(fmt.Sprintf("this channel is %s", channel.Name), msg.Channel)
@@ -299,7 +296,6 @@ func main() {
 		_, err = JiraServer.GetTicketByKey(sampleTicketKey)
 		if err != nil {
 			client.Send(fmt.Sprintf("Unable to find JIRA ticket by key: %s", sampleTicketKey), msg.Channel)
-			return
 		}
 
 		// verify that we can open and parse the FLARE template
@@ -335,6 +331,8 @@ func main() {
 			return
 		}
 
+		log.Printf("starting flare process. I was told %s", msg.Text)
+
 		client.API.SetUserAsActive()
 
 		// retroactive?
@@ -360,7 +358,9 @@ func main() {
 		ticket, err := JiraServer.CreateTicket(priority, topic, assigneeUser)
 
 		if ticket == nil || err != nil {
-			panic(fmt.Sprintf("no JIRA ticket created: %s", err.Error()))
+			client.Send("I'm sorry, I can't seem to connect to Jira right now. So I can't make a ticket or determine the next flare number. If you need to make a new channel to discuss, please don't use the next flare-number channel, that'll confuse me later on.", msg.Channel)
+			log.Printf("no JIRA ticket created: %s", err.Error())
+			return
 		}
 
 		// start progress on the ticket
@@ -381,104 +381,124 @@ func main() {
 			flareDocTitle = fmt.Sprintf("%s - Retroactive", flareDocTitle)
 		}
 
-		flareDoc, err := googleDocsServer.CreateFromTemplate(flareDocTitle, googleFlareDocID, map[string]string{
+		flareDoc, flareDocErr := googleDocsServer.CreateFromTemplate(flareDocTitle, googleFlareDocID, map[string]string{
 			"jira_key": ticket.Key,
 		})
 
-		if err != nil {
-			log.Fatalf("No google flare doc created: %s", err)
+		if flareDocErr != nil {
+			client.Send("I'm having trouble connecting to google docs right now, so I can't make a flare doc for tracking. I'll try my best to recover.", msg.Channel)
+			log.Printf("No google flare doc created: %s", err)
 		}
 
 		slackHistoryDocTitle := fmt.Sprintf("%s: %s (Slack History)", ticket.Key, topic)
-		slackHistoryDoc, err := googleDocsServer.CreateFromTemplate(slackHistoryDocTitle, googleSlackHistoryDocID, map[string]string{
+		slackHistoryDoc, historyDocErr := googleDocsServer.CreateFromTemplate(slackHistoryDocTitle, googleSlackHistoryDocID, map[string]string{
 			"jira_key": ticket.Key,
 		})
 
-		if err != nil {
-			log.Fatalf("No google slack history doc created: %s", err)
+		if historyDocErr != nil {
+			log.Printf("No google slack history doc created: %s", err)
 		}
 
-		// update the google doc with some basic information
-		html, err := googleDocsServer.GetDocContent(flareDoc, "text/html")
+		if flareDocErr == nil {
+			// update the google doc with some basic information
+			html, err := googleDocsServer.GetDocContent(flareDoc, "text/html")
+			if err != nil {
+				log.Printf("unexpected errror getting content from the flare doc: %s", err)
+			} else {
+				html = strings.Replace(html, "[FLARE-KEY]", ticket.Key, 1)
+				html = strings.Replace(html, "[START-DATE]", currentTimeStringInTZ("US/Pacific"), 1)
+				html = strings.Replace(html, "[SUMMARY]", topic, 1)
+				html = strings.Replace(html, "[HISTORY-DOC]",
+					fmt.Sprintf(`<a href="%s">%s</a>`, slackHistoryDoc.File.AlternateLink, slackHistoryDocTitle), 1)
 
-		html = strings.Replace(html, "[FLARE-KEY]", ticket.Key, 1)
-		html = strings.Replace(html, "[START-DATE]", currentTimeStringInTZ("US/Pacific"), 1)
-		html = strings.Replace(html, "[SUMMARY]", topic, 1)
-		html = strings.Replace(html, "[HISTORY-DOC]",
-			fmt.Sprintf(`<a href="%s">%s</a>`, slackHistoryDoc.File.AlternateLink, slackHistoryDocTitle), 1)
+				googleDocsServer.UpdateDocContent(flareDoc, html)
 
-		googleDocsServer.UpdateDocContent(flareDoc, html)
+				// update permissions
+				if err = googleDocsServer.ShareDocWithDomain(flareDoc, googleDomain, "writer"); err != nil {
+					// It's OK if we continue here, and don't error out
+					log.Printf("Couldn't share google flare doc: %s", err)
+				}
+				if err = googleDocsServer.ShareDocWithDomain(slackHistoryDoc, googleDomain, "writer"); err != nil {
+					// It's OK if we continue here, and don't error out
+					log.Printf("Couldn't share google slack history doc: %s", err)
+				}
+			}
 
-		// update permissions
-		if err = googleDocsServer.ShareDocWithDomain(flareDoc, googleDomain, "writer"); err != nil {
-			log.Fatalf("Couldn't share google flare doc: %s", err)
-		}
-		if err = googleDocsServer.ShareDocWithDomain(slackHistoryDoc, googleDomain, "writer"); err != nil {
-			log.Fatalf("Couldn't share google slack history doc: %s", err)
-		}
-
-		// Add the doc to the Jira ticket
-		desc := fmt.Sprintf("[Flare Doc|%s]    [Slack History|%s]", flareDoc.File.AlternateLink, slackHistoryDoc.File.AlternateLink)
-		err = JiraServer.SetDescription(ticket, desc)
-		if err != nil {
-			fmt.Printf("Failed to set description for %s: %s\n", ticket.Key, err.Error())
+			// Add the doc to the Jira ticket
+			desc := fmt.Sprintf("[Flare Doc|%s]    [Slack History|%s]", flareDoc.File.AlternateLink, slackHistoryDoc.File.AlternateLink)
+			err = JiraServer.SetDescription(ticket, desc)
+			if err != nil {
+				// It's OK if we continue here, and don't error out
+				log.Printf("Failed to set description for %s: %s\n", ticket.Key, err.Error())
+			}
 		}
 
 		// set up the Flare room
-		channel, err := client.CreateChannel(strings.ToLower(ticket.Key))
-		if err != nil {
-			log.Fatalf("Couldn't create Flare channel: %s", err)
+		channel, channelErr := client.CreateChannel(strings.ToLower(ticket.Key))
+		if channelErr != nil {
+			client.Send("Slack is giving me some trouble right now, so I couldn't create a channel for you. It could be that the channel already exists, but hopefully no one did that already. If you need to make a new channel to discuss, please don't use the next flare-number channel, that'll confuse me later on.", msg.Channel)
+			log.Printf("Couldn't create Flare channel: %s", err)
 		}
 
-		slackHistoryDocCache[channel.ID] = slackHistoryDoc.File.Id
+		if channelErr != nil {
+			if isRetroactive {
+				client.Send("This is a RETROACTIVE Flare. All is well.", channel.ID)
+			}
 
-		if isRetroactive {
-			client.Send("This is a RETROACTIVE Flare. All is well.", channel.ID)
+			slackHistoryDocCache[channel.ID] = slackHistoryDoc.File.Id
+
+			client.API.SetChannelTopic(channel.ID, topic)
+
+			client.Send(fmt.Sprintf("JIRA ticket: %s", ticket.Url()), channel.ID)
+			if flareDocErr == nil {
+				client.Send(fmt.Sprintf("Flare doc: %s", flareDoc.File.AlternateLink), channel.ID)
+			}
+			if historyDocErr == nil {
+				client.Send(fmt.Sprintf("Slack log: %s", slackHistoryDoc.File.Id), channel.ID)
+			}
+			client.Send(fmt.Sprintf("Flare resources: %s", resources_url), channel.ID)
+			client.Send(fmt.Sprintf("Manage status page: %s", status_page_login_url), channel.ID)
+			client.Send(fmt.Sprintf("Remember: Rollback, Scale or Restart!"), channel.ID)
+
+			// Pin the most important messages. NOTE: that this is based on text
+			// matching, so the links need to be escaped to match
+			client.Pin(fmt.Sprintf("JIRA ticket: <%s>", ticket.Url()), channel.ID)
+			if flareDocErr == nil {
+				client.Pin(fmt.Sprintf("Flare doc: <%s>", flareDoc.File.AlternateLink), channel.ID)
+			}
+			if historyDocErr == nil {
+				client.Pin(fmt.Sprintf("Slack log: %s", slackHistoryDoc.File.Id), channel.ID)
+			}
+			client.Pin(fmt.Sprintf("Manage status page: <%s>", status_page_login_url), channel.ID)
+			client.Pin(fmt.Sprintf("Remember: Rollback, Scale or Restart!"), channel.ID)
+
+			// send room-specific help
+			sendHelpMessage(client, JiraServer, channel.ID, false)
+
+			// let people know that they can rename this channel
+			client.Send(fmt.Sprintf("NOTE: you can rename this channel as long as it starts with %s", channel.Name), channel.ID)
+
+			// Some folks want a specific reminder to check for customer impact. It's early to invite them, but it's easier than timing a delay, or clicking the "invite" button programatically.
+			// k8
+			client.API.InviteUserToChannel(channel.ID, "U0W9V5UQG")
+			// alexander
+			client.API.InviteUserToChannel(channel.ID, "U1T5Y5YRJ")
+			go sendReminderMessage(client, channel.ID, fmt.Sprintf("Do you know which services are affected? If not you can generate a service failure diagram.\nExample input below, or see https://github.com/Clever/dependency-failure-diagram-generator\n```\nark submit -e production dependency-failure-diagram-generator:master '{ \"root_apps\": [\"clever-com-router\"], \"timestamps\": [\"%s\"], \"slack_channel_id\": \"%s\" }'\n```",
+				time.Now().Round(time.Minute).Format(time.RFC3339), channel.ID), 1*time.Minute)
+			go sendReminderMessage(client, channel.ID, "Are users affected? Consider creating an incident on the status page and updating the title. Ask Customer Solutions if we have received any Zendesk tickets related to this Flare. (cc @k8, @alexander)", 2*time.Minute)
+			go sendReminderMessage(client, channel.ID, "Are the right people in the flare channel? Consider using the /page Slack command.", 3*time.Minute)
+			go sendReminderMessage(client, channel.ID, "Have you tried rolling back, scaling or restarting? (consider SSO version too)", 5*time.Minute)
+
+			// announce the specific Flare room in the overall Flares room
+			target := "channel"
+
+			if isRetroactive || isPreemptive {
+				author, _ := msg.AuthorUser()
+				target = author.Name
+			}
+
+			client.Send(fmt.Sprintf("@%s: Flare fired. Please visit #%s -- %s", target, strings.ToLower(ticket.Key), topic), msg.Channel)
 		}
-
-		client.API.SetChannelTopic(channel.ID, topic)
-
-		client.Send(fmt.Sprintf("JIRA ticket: %s", ticket.Url()), channel.ID)
-		client.Send(fmt.Sprintf("Flare doc: %s", flareDoc.File.AlternateLink), channel.ID)
-		client.Send(fmt.Sprintf("Slack log: %s", slackHistoryDoc.File.Id), channel.ID)
-		client.Send(fmt.Sprintf("Flare resources: %s", resources_url), channel.ID)
-		client.Send(fmt.Sprintf("Manage status page: %s", status_page_login_url), channel.ID)
-		client.Send(fmt.Sprintf("Remember: Rollback, Scale or Restart!"), channel.ID)
-
-		// Pin the most important messages. NOTE: that this is based on text
-		// matching, so the links need to be escaped to match
-		client.Pin(fmt.Sprintf("JIRA ticket: <%s>", ticket.Url()), channel.ID)
-		client.Pin(fmt.Sprintf("Flare doc: <%s>", flareDoc.File.AlternateLink), channel.ID)
-		client.Pin(fmt.Sprintf("Slack log: %s", slackHistoryDoc.File.Id), channel.ID)
-		client.Pin(fmt.Sprintf("Manage status page: <%s>", status_page_login_url), channel.ID)
-		client.Pin(fmt.Sprintf("Remember: Rollback, Scale or Restart!"), channel.ID)
-
-		// send room-specific help
-		sendHelpMessage(client, JiraServer, channel.ID, false)
-
-		// let people know that they can rename this channel
-		client.Send(fmt.Sprintf("NOTE: you can rename this channel as long as it starts with %s", channel.Name), channel.ID)
-
-		// Some folks want a specific reminder to check for customer impact. It's early to invite them, but it's easier than timing a delay, or clicking the "invite" button programatically.
-		// k8
-		client.API.InviteUserToChannel(channel.ID, "U0W9V5UQG")
-		// alexander
-		client.API.InviteUserToChannel(channel.ID, "U1T5Y5YRJ")
-		go sendReminderMessage(client, channel.ID, fmt.Sprintf("Do you know which services are affected? If not you can generate a service failure diagram.\nExample input below, or see https://github.com/Clever/dependency-failure-diagram-generator\n```\nark submit -e production dependency-failure-diagram-generator:master '{ \"root_apps\": [\"clever-com-router\"], \"timestamps\": [\"%s\"], \"slack_channel_id\": \"%s\" }'\n```",
-			time.Now().Round(time.Minute).Format(time.RFC3339), channel.ID), 1*time.Minute)
-		go sendReminderMessage(client, channel.ID, "Are users affected? Consider creating an incident on the status page and updating the title. Ask Customer Solutions if we have received any Zendesk tickets related to this Flare. (cc @k8, @alexander)", 2*time.Minute)
-		go sendReminderMessage(client, channel.ID, "Are the right people in the flare channel? Consider using the /page Slack command.", 3*time.Minute)
-		go sendReminderMessage(client, channel.ID, "Have you tried rolling back, scaling or restarting? (consider SSO version too)", 5*time.Minute)
-
-		// announce the specific Flare room in the overall Flares room
-		target := "channel"
-
-		if isRetroactive || isPreemptive {
-			author, _ := msg.AuthorUser()
-			target = author.Name
-		}
-
-		client.Send(fmt.Sprintf("@%s: Flare fired. Please visit #%s -- %s", target, strings.ToLower(ticket.Key), topic), msg.Channel)
 	})
 
 	client.Respond(takingLeadCommand.regexp, func(msg *slack.Message, params [][]string) {
@@ -504,7 +524,6 @@ func main() {
 
 		if err != nil {
 			client.Send("Sorry, I can only assign incident leads in a channel that corresponds to a Flare issue in JIRA.", msg.Channel)
-			return
 		}
 
 		client.Send("setting JIRA ticket to mitigated....", msg.Channel)
@@ -533,7 +552,6 @@ func main() {
 
 		if err != nil {
 			client.Send("Sorry, I can't find the JIRA.", msg.Channel)
-			return
 		}
 
 		client.Send("setting JIRA ticket to Not a Flare....", msg.Channel)
@@ -570,6 +588,7 @@ func main() {
 			// or in a flare-specific channel
 			if err != nil {
 				// bail
+				// TODO
 				return
 			}
 		}

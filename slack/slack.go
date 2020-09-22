@@ -142,13 +142,13 @@ func (c *Client) handleMessage(msg *slk.MessageEvent) {
 	c.recordHistoryCallback(m)
 }
 
-func (c *Client) pinSlackMessage(channelId, msg string) {
+func (c *Client) pinSlackMessage(channelId, msg string) error {
 	// The channel is brand new, so there shouldn't be more than 100 messages in
 	// it, which is the default count returned
 	params := slk.NewHistoryParameters()
 	history, err := c.API.GetChannelHistory(channelId, params)
 	if err != nil {
-		log.Fatalf("Failed to lookup channel history for %s: %s", channelId, err)
+		return fmt.Errorf("Failed to lookup channel history for %s: %s", channelId, err)
 	}
 	for _, post := range history.Messages {
 		if post.Text == msg {
@@ -158,13 +158,13 @@ func (c *Client) pinSlackMessage(channelId, msg string) {
 				Timestamp: post.Timestamp,
 			})
 			if err != nil {
-				log.Fatalf("Failed to pin message: %s", err)
+				return fmt.Errorf("Failed to pin message: %s", err)
 			}
 			log.Printf("Pinned message `%s` in channel: %s\n", msg, channelId)
-			return
+			return nil
 		}
 	}
-	log.Fatalf("Could not find message with text `%s` in channel: %s", msg, channelId)
+	return fmt.Errorf("Could not find message with text `%s` in channel: %s", msg, channelId)
 }
 
 func (c *Client) start() {
@@ -176,22 +176,23 @@ func (c *Client) start() {
 	messageParameters.AsUser = true
 
 	c.wg.Add(1)
-	go func(ws *slk.RTM, chSender chan slk.OutgoingMessage) {
+	go func(ws *slk.RTM, chSender chan slk.OutgoingMessage) error {
 		for msg := range chSender {
 			switch msg.Type {
 			case "message":
 				_, _, err := ws.PostMessage(msg.Channel, msg.Text, messageParameters)
 				if err != nil {
-					log.Fatalf("Failed to post message. %s\n", err.Error())
+					return fmt.Errorf("Failed to post message. %s\n", err.Error())
 				}
 			case "pin":
 				c.pinSlackMessage(msg.Channel, msg.Text)
 			default:
-				log.Fatalf("Unknown outgoing message type: %s", msg.Type)
+				return fmt.Errorf("Unknown outgoing message type: %s", msg.Type)
 			}
 		}
 		c.wg.Done()
 		fmt.Printf("Outgoing goroutine ended\n")
+		return nil
 	}(c.rtm, c.outgoing)
 
 	c.wg.Add(1)
@@ -214,6 +215,12 @@ func (c *Client) start() {
 			case *slk.ConnectionErrorEvent:
 				error := msg.Data.(*slk.ConnectionErrorEvent)
 				fmt.Printf("Error: %v\n", error)
+			case *slk.UnmarshallingErrorEvent:
+				error := msg.Data.(*slk.UnmarshallingErrorEvent)
+				fmt.Printf("Error: %v\n", error)
+			case *slk.IncomingEventError:
+				error := msg.Data.(*slk.IncomingEventError)
+				fmt.Printf("Error: %v\n", error)
 			case *slk.ChannelCreatedEvent:
 				data := msg.Data.(*slk.ChannelCreatedEvent)
 				fmt.Printf("Created channel: %s (%s)\n", data.Channel.Name, data.Channel.ID)
@@ -226,10 +233,44 @@ func (c *Client) start() {
 				// Ignore the Connecting events
 			case *slk.LatencyReport:
 				// Ignore the Latency reports
+			case *slk.ReactionAddedEvent:
+				// Ignore the Reaction added events
+			case *slk.ReactionRemovedEvent:
+				// Ignore the Reaction removed events
+			case *slk.EmojiChangedEvent:
+				// Ignore the Emoji Changed events
+			case *slk.FileCreatedEvent:
+				// Ignore the File Created events
+			case *slk.FileChangeEvent:
+				// Ignore the File Change events
+			case *slk.FilePublicEvent:
+				// Ignore the file Public events
+			case *slk.FileUnsharedEvent:
+				// Ignore the File Unshared events
+			case *slk.FileSharedEvent:
+				// Ignore the File Shared events
+			case *slk.FileDeletedEvent:
+				// Ignore the File Deleted events
+			case *slk.UserChangeEvent:
+				// Ignore the User Change events
+			case *slk.DNDUpdatedEvent:
+				// Ignore the DNDUpdated events
+			case *slk.ChannelHistoryChangedEvent:
+				// Ignore the Channel History Changed events
+			case *slk.BotAddedEvent:
+				// Ignore the Bot added events
+			case *slk.BotChangedEvent:
+				// Ignore the Bot changed events
+			case *slk.CommandsChangedEvent:
+				// Ignore the commands changed events
+			case *slk.TeamJoinEvent:
+				// Ignore the team join events
 			case *slk.ReconnectUrlEvent:
 				// Ignore the reconnect URLS
 			case *slk.PinAddedEvent:
 				// Ignore the pin added events
+			case *slk.PinRemovedEvent:
+				// Ignore the pin removed events
 			case *slk.ChannelMarkedEvent:
 				// Ignore the channel marked events.
 			case *slk.PrefChangeEvent:
