@@ -355,12 +355,15 @@ func main() {
 		author, _ := msg.AuthorUser()
 		assigneeUser, _ := JiraServer.GetUserByEmail(author.Profile.Email)
 
+		log.Printf("Attempting to create JIRA ticket")
 		ticket, err := JiraServer.CreateTicket(priority, topic, assigneeUser)
 
 		if ticket == nil || err != nil {
 			client.Send("I'm sorry, I can't seem to connect to Jira right now. So I can't make a ticket or determine the next flare number. If you need to make a new channel to discuss, please don't use the next flare-number channel, that'll confuse me later on.", msg.Channel)
 			log.Printf("no JIRA ticket created: %s", err.Error())
 			return
+		} else {
+			log.Printf("Jira ticket %s created", ticket.Key)
 		}
 
 		// start progress on the ticket
@@ -381,6 +384,7 @@ func main() {
 			flareDocTitle = fmt.Sprintf("%s - Retroactive", flareDocTitle)
 		}
 
+		log.Printf("Attempting to create flare doc")
 		flareDoc, flareDocErr := googleDocsServer.CreateFromTemplate(flareDocTitle, googleFlareDocID, map[string]string{
 			"jira_key": ticket.Key,
 		})
@@ -388,8 +392,11 @@ func main() {
 		if flareDocErr != nil {
 			client.Send("I'm having trouble connecting to google docs right now, so I can't make a flare doc for tracking. I'll try my best to recover.", msg.Channel)
 			log.Printf("No google flare doc created: %s", err)
+		} else {
+			log.Printf("Flare doc created")
 		}
 
+		log.Printf("Attempting to create history doc")
 		slackHistoryDocTitle := fmt.Sprintf("%s: %s (Slack History)", ticket.Key, topic)
 		slackHistoryDoc, historyDocErr := googleDocsServer.CreateFromTemplate(slackHistoryDocTitle, googleSlackHistoryDocID, map[string]string{
 			"jira_key": ticket.Key,
@@ -397,6 +404,8 @@ func main() {
 
 		if historyDocErr != nil {
 			log.Printf("No google slack history doc created: %s", err)
+		} else {
+			log.Printf("Google slack history doc created")
 		}
 
 		if flareDocErr == nil {
@@ -433,14 +442,15 @@ func main() {
 			}
 		}
 
+		log.Printf("Attempting to create flare channel")
 		// set up the Flare room
 		channel, channelErr := client.CreateChannel(strings.ToLower(ticket.Key))
 		if channelErr != nil {
 			client.Send("Slack is giving me some trouble right now, so I couldn't create a channel for you. It could be that the channel already exists, but hopefully no one did that already. If you need to make a new channel to discuss, please don't use the next flare-number channel, that'll confuse me later on.", msg.Channel)
 			log.Printf("Couldn't create Flare channel: %s", err)
-		}
+		} else {
+			log.Printf("Flare channel created")
 
-		if channelErr != nil {
 			if isRetroactive {
 				client.Send("This is a RETROACTIVE Flare. All is well.", channel.ID)
 			}
@@ -582,13 +592,14 @@ func main() {
 	// fallback response saying "I don't understand"
 	client.Respond(".*", func(msg *slack.Message, params [][]string) {
 		// if not in the main Flares channel
+		log.Printf("received unexpected message %s", msg.Text)
 		if msg.Channel != expectedChannel {
 			_, err := GetTicketFromCurrentChannel(client, JiraServer, msg.Channel)
 
 			// or in a flare-specific channel
 			if err != nil {
 				// bail
-				// TODO
+				log.Printf("unknown message in uexpected channel %s, ignoring", msg.Channel)
 				return
 			}
 		}
