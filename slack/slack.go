@@ -231,6 +231,10 @@ func (c *Client) start() {
 				fmt.Printf("Connected to slack!\n")
 			case *slk.ConnectingEvent:
 				// Ignore the Connecting events
+			case *slk.ChannelArchiveEvent:
+				// Ignore the Channel Archive events
+			case *slk.ChannelUnarchiveEvent:
+				// Ignore the Channel Unarchive events
 			case *slk.LatencyReport:
 				// Ignore the Latency reports
 			case *slk.ReactionAddedEvent:
