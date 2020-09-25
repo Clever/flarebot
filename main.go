@@ -455,8 +455,6 @@ func main() {
 				client.Send("This is a RETROACTIVE Flare. All is well.", channel.ID)
 			}
 
-			slackHistoryDocCache[channel.ID] = slackHistoryDoc.File.Id
-
 			client.API.SetChannelTopic(channel.ID, topic)
 
 			client.Send(fmt.Sprintf("JIRA ticket: %s", ticket.Url()), channel.ID)
@@ -464,6 +462,7 @@ func main() {
 				client.Send(fmt.Sprintf("Flare doc: %s", flareDoc.File.AlternateLink), channel.ID)
 			}
 			if historyDocErr == nil {
+				slackHistoryDocCache[channel.ID] = slackHistoryDoc.File.Id
 				client.Send(fmt.Sprintf("Slack log: %s", slackHistoryDoc.File.Id), channel.ID)
 			}
 			client.Send(fmt.Sprintf("Flare resources: %s", resources_url), channel.ID)
