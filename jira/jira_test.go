@@ -125,6 +125,35 @@ func TestCreateTicket(t *testing.T) {
 	}
 }
 
+func TestCreateTicketNewGen(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	jiraServiceCalled := false
+
+	httpmock.RegisterResponder("POST", mockOrigin+"/rest/api/2/issue",
+		func(req *http.Request) (*http.Response, error) {
+			jiraServiceCalled = true
+
+			return httpmock.NewStringResponse(200, mockIssueContent), nil
+		},
+	)
+
+	testServer := CreateTestJiraServer()
+
+	theTicket, err := testServer.CreateTicketNewGen(nil, "It's a problem 2", &jira.User{
+		Name:         "alice.smith",
+		EmailAddress: "alice.smith@example.com",
+	})
+
+	assert.True(t, jiraServiceCalled)
+
+	assert.NoError(t, err)
+	if err == nil {
+		assert.Equal(t, theTicket.Key, mockIssueID)
+	}
+}
+
 func TestAssignTicketToUser(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()

@@ -56,6 +56,7 @@ type JiraService interface {
 	GetUserByEmail(email string) (*User, error)
 	GetTicketByKey(key string) (*Ticket, error)
 	CreateTicket(priority int, topic string, assignee *User) (*Ticket, error)
+	CreateTicketNewGen(priority *int, topic string, assignee *User) (*Ticket, error)
 	AssignTicketToUser(ticket *Ticket, user *User) error
 	DoTicketTransition(ticket *Ticket, transitionName string) error
 	SetDescription(ticket *Ticket, description string) error
@@ -176,6 +177,57 @@ func (server *JiraServer) CreateTicket(priority int, topic string, assignee *Use
 				"id": server.PriorityIDs[priority],
 			},
 		},
+	}
+
+	var ticket Ticket
+
+	url := "/rest/api/2/issue"
+	err := server.DoRequest("POST", url, request, &ticket)
+
+	ticket.service = server
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &ticket, nil
+}
+
+func (server *JiraServer) CreateTicketNewGen(priority *int, topic string, assignee *User) (*Ticket, error) {
+	var request map[string]interface{}
+	if priority == nil {
+		request = map[string]interface{}{
+			"fields": &map[string]interface{}{
+				"project": &map[string]interface{}{
+					"id": server.ProjectID,
+				},
+				"issuetype": &map[string]interface{}{
+					"id": server.IssueTypeID,
+				},
+				"assignee": &map[string]interface{}{
+					"name": assignee.Name,
+				},
+				"summary": topic,
+			},
+		}
+	} else {
+		request = map[string]interface{}{
+			"fields": &map[string]interface{}{
+				"project": &map[string]interface{}{
+					"id": server.ProjectID,
+				},
+				"issuetype": &map[string]interface{}{
+					"id": server.IssueTypeID,
+				},
+				"assignee": &map[string]interface{}{
+					"name": assignee.Name,
+				},
+				"summary": topic,
+				"priority": &map[string]interface{}{
+					"id": server.PriorityIDs[*priority],
+				},
+			},
+		}
 	}
 
 	var ticket Ticket
