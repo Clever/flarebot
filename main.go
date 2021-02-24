@@ -40,34 +40,34 @@ var testCommand = &command{
 var takingLeadCommand = &command{
 	regexp:      "[iI]('?m?| am?) (the )?incident lead",
 	example:     "I am incident lead",
-	description: "Declare yourself incident-lead",
+	description: "Declare yourself incident lead.",
 }
 
 var flareMitigatedCommand = &command{
 	regexp:      "([Ff]lare )?(is )?mitigated",
 	example:     "flare mitigated",
-	description: "Mark the Flare mitigated",
+	description: "Mark the Flare mitigated.",
 }
 
 // not a flare
 var notAFlareCommand = &command{
 	regexp:      "([Ff]lare )?(is )?not a [Ff]lare",
 	example:     "not a flare",
-	description: "Mark the Flare not-a-flare",
+	description: "Mark the Flare not-a-flare.",
 }
 
 // help command
 var helpCommand = &command{
 	regexp:      "[Hh]elp *$",
 	example:     "help",
-	description: "display the list of commands available in this channel",
+	description: "display the list of commands available in this channel.",
 }
 
 // help all command
 var helpAllCommand = &command{
 	regexp:      "[Hh]elp [Aa]ll",
 	example:     "help all",
-	description: "display the list of all commands and the channels where they're available",
+	description: "display the list of all commands and the channels where they're available.",
 }
 
 var mainChannelCommands = []*command{helpCommand, helpAllCommand, fireFlareCommand}
