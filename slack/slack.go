@@ -169,12 +169,19 @@ func (c *Client) pinSlackMessage(channelId, msg string) error {
 func (c *Client) start() {
 	c.outgoing = make(chan slk.OutgoingMessage)
 
+	// For every message posting, Flarebot needs certain parameters
+	// set, so that it converses like another Slack user.
+	messageParameters := slk.NewPostMessageParameters()
+	messageParameters.LinkNames = 1
+	messageParameters.AsUser = true
+	optMessageParameters := slk.MsgOptionPostMessageParameters(messageParameters)
+
 	c.wg.Add(1)
 	go func(ws *slk.RTM, chSender chan slk.OutgoingMessage) error {
 		for msg := range chSender {
 			switch msg.Type {
 			case "message":
-				_, _, err := ws.PostMessage(msg.Channel, slk.MsgOptionText(msg.Text, false), slk.MsgOptionAsUser(true))
+				_, _, err := ws.PostMessage(msg.Channel, slk.MsgOptionText(msg.Text, false), optMessageParameters)
 				if err != nil {
 					return fmt.Errorf("Failed to post message. %s\n", err.Error())
 				}
