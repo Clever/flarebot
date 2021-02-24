@@ -169,17 +169,12 @@ func (c *Client) pinSlackMessage(channelId, msg string) error {
 func (c *Client) start() {
 	c.outgoing = make(chan slk.OutgoingMessage)
 
-	// parameters for all postings
-	messageParameters := slk.NewPostMessageParameters()
-	messageParameters.LinkNames = 1
-	messageParameters.AsUser = true
-
 	c.wg.Add(1)
 	go func(ws *slk.RTM, chSender chan slk.OutgoingMessage) error {
 		for msg := range chSender {
 			switch msg.Type {
 			case "message":
-				_, _, err := ws.PostMessage(msg.Channel, msg.Text, messageParameters)
+				_, _, err := ws.PostMessage(msg.Channel, slk.MsgOptionText(msg.Text, false), slk.MsgOptionAsUser(true))
 				if err != nil {
 					return fmt.Errorf("Failed to post message. %s\n", err.Error())
 				}
