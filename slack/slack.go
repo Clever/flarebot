@@ -11,7 +11,7 @@ import (
 
 	"golang.org/x/oauth2"
 
-	slk "github.com/nlopes/slack"
+	slk "github.com/slack-go/slack"
 )
 
 type Client struct {
@@ -56,7 +56,7 @@ func (c *Client) Stop() {
 }
 
 func (c *Client) CreateChannel(name string) (*slk.Channel, error) {
-	channel, err := c.API.CreateChannel(name)
+	channel, err := c.API.CreateConversation(name, false)
 	if err != nil {
 		return nil, err
 	} else {
@@ -145,8 +145,7 @@ func (c *Client) handleMessage(msg *slk.MessageEvent) {
 func (c *Client) pinSlackMessage(channelId, msg string) error {
 	// The channel is brand new, so there shouldn't be more than 100 messages in
 	// it, which is the default count returned
-	params := slk.NewHistoryParameters()
-	history, err := c.API.GetChannelHistory(channelId, params)
+	history, err := c.API.GetConversationHistory(&slk.GetConversationHistoryParameters{ChannelID: channelId})
 	if err != nil {
 		return fmt.Errorf("Failed to lookup channel history for %s: %s", channelId, err)
 	}
@@ -170,17 +169,19 @@ func (c *Client) pinSlackMessage(channelId, msg string) error {
 func (c *Client) start() {
 	c.outgoing = make(chan slk.OutgoingMessage)
 
-	// parameters for all postings
+	// For every message posting, Flarebot needs certain parameters
+	// set, so that it converses like another Slack user.
 	messageParameters := slk.NewPostMessageParameters()
 	messageParameters.LinkNames = 1
 	messageParameters.AsUser = true
+	optMessageParameters := slk.MsgOptionPostMessageParameters(messageParameters)
 
 	c.wg.Add(1)
 	go func(ws *slk.RTM, chSender chan slk.OutgoingMessage) error {
 		for msg := range chSender {
 			switch msg.Type {
 			case "message":
-				_, _, err := ws.PostMessage(msg.Channel, msg.Text, messageParameters)
+				_, _, err := ws.PostMessage(msg.Channel, slk.MsgOptionText(msg.Text, false), optMessageParameters)
 				if err != nil {
 					return fmt.Errorf("Failed to post message. %s\n", err.Error())
 				}
