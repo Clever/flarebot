@@ -83,7 +83,7 @@ var slackHistoryDocCache = map[string]string{}
 
 func GetTicketFromCurrentChannel(client *slack.Client, JiraServer *jira.JiraServer, channelID string) (*jira.Ticket, error) {
 	// first more info about the channel
-	channel, err := client.API.GetChannelInfo(channelID)
+	channel, err := client.API.GetConversationInfo(channelID, false)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +104,7 @@ func GetTicketFromCurrentChannel(client *slack.Client, JiraServer *jira.JiraServ
 func recordSlackHistory(client *slack.Client, googleDocsServer googledocs.GoogleDocsService, message *slack.Message) error {
 	docID, ok := slackHistoryDocCache[message.Channel]
 	if !ok {
-		channel, err := client.API.GetChannelInfo(message.Channel)
+		channel, err := client.API.GetConversationInfo(message.Channel, false)
 		if err != nil {
 			return err
 		}
@@ -285,7 +285,7 @@ func main() {
 
 		client.Send(fmt.Sprintf("JIRA username is %s", user.Name), msg.Channel)
 
-		channel, err := client.API.GetChannelInfo(msg.Channel)
+		channel, err := client.API.GetConversationInfo(msg.Channel, false)
 		if err != nil {
 			client.Send("Unable to determine channel info", msg.Channel)
 		}
@@ -455,7 +455,7 @@ func main() {
 				client.Send("This is a RETROACTIVE Flare. All is well.", channel.ID)
 			}
 
-			client.API.SetChannelTopic(channel.ID, topic)
+			client.API.SetTopicOfConversation(channel.ID, topic)
 
 			client.Send(fmt.Sprintf("JIRA ticket: %s", ticket.Url()), channel.ID)
 			if flareDocErr == nil {
@@ -488,10 +488,9 @@ func main() {
 			client.Send(fmt.Sprintf("NOTE: you can rename this channel as long as it starts with %s", channel.Name), channel.ID)
 
 			// Some folks want a specific reminder to check for customer impact. It's early to invite them, but it's easier than timing a delay, or clicking the "invite" button programatically.
-			// k8
-			client.API.InviteUserToChannel(channel.ID, "U0W9V5UQG")
-			// alexander
-			client.API.InviteUserToChannel(channel.ID, "U1T5Y5YRJ")
+			// k8: U0W9V5UQG
+			// alexander: U1T5Y5YRJ
+			client.API.InviteUsersToConversation(channel.ID, "U0W9V5UQG", "U1T5Y5YRJ")
 			go sendReminderMessage(client, channel.ID, fmt.Sprintf("Do you know which services are affected? If not you can generate a service failure diagram.\nExample input below, or see https://github.com/Clever/dependency-failure-diagram-generator\n```\nark submit -e production dependency-failure-diagram-generator:master '{ \"root_apps\": [\"clever-com-router\"], \"timestamps\": [\"%s\"], \"slack_channel_id\": \"%s\" }'\n```",
 				time.Now().Round(time.Minute).Format(time.RFC3339), channel.ID), 1*time.Minute)
 			go sendReminderMessage(client, channel.ID, "Are users affected? Consider creating an incident on the status page and updating the title. Ask Customer Solutions if we have received any Zendesk tickets related to this Flare. (cc @k8, @alexander)", 2*time.Minute)

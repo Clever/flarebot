@@ -11,7 +11,7 @@ import (
 
 	"golang.org/x/oauth2"
 
-	slk "github.com/nlopes/slack"
+	slk "github.com/slack-go/slack"
 )
 
 type Client struct {
@@ -56,7 +56,7 @@ func (c *Client) Stop() {
 }
 
 func (c *Client) CreateChannel(name string) (*slk.Channel, error) {
-	channel, err := c.API.CreateChannel(name)
+	channel, err := c.API.CreateConversation(name, false)
 	if err != nil {
 		return nil, err
 	} else {
@@ -145,8 +145,7 @@ func (c *Client) handleMessage(msg *slk.MessageEvent) {
 func (c *Client) pinSlackMessage(channelId, msg string) error {
 	// The channel is brand new, so there shouldn't be more than 100 messages in
 	// it, which is the default count returned
-	params := slk.NewHistoryParameters()
-	history, err := c.API.GetChannelHistory(channelId, params)
+	history, err := c.API.GetConversationHistory(&slk.GetConversationHistoryParameters{ChannelID: channelId})
 	if err != nil {
 		return fmt.Errorf("Failed to lookup channel history for %s: %s", channelId, err)
 	}

@@ -3,7 +3,7 @@ package slack
 import (
 	"fmt"
 
-	slk "github.com/nlopes/slack"
+	slk "github.com/slack-go/slack"
 )
 
 type Message struct {
