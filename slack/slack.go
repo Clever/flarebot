@@ -72,7 +72,7 @@ func (c *Client) Hear(pattern string, fn func(*Message, [][]string)) {
 }
 
 func (c *Client) Respond(pattern string, fn func(*Message, [][]string)) {
-	c.Hear(fmt.Sprintf("<@%s|%s>:?(\\s*|\\\\u00a0)%s", c.Username, c.userId, pattern), fn)
+	c.Hear(fmt.Sprintf("<@%s|%s>:?\\W*%s", c.Username, c.userId, pattern), fn)
 }
 
 func (c *Client) Send(msg, channelId string) {
