@@ -7,7 +7,7 @@ PKGS := $(shell go list ./... | grep -v /vendor)
 EXECUTABLE := flarebot
 .PHONY: test $(PKGS) clean vendor
 
-$(eval $(call golang-version-check,1.13))
+$(eval $(call golang-version-check,1.16))
 
 
 all: test build
