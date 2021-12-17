@@ -262,7 +262,7 @@ func main() {
 
 	client, err = slack.NewClient(accessToken, domain, username, recordSlackHistoryCallback)
 	if err != nil {
-		panic(err)
+		panic(err.Error())
 	}
 
 	expectedChannel := os.Getenv("SLACK_CHANNEL")
