@@ -434,7 +434,31 @@ func main() {
 			}
 
 			// Add the doc to the Jira ticket
-			desc := fmt.Sprintf("[Flare Doc|%s]    [Slack History|%s]", flareDoc.File.AlternateLink, slackHistoryDoc.File.AlternateLink)
+			flareFollowupTemplateStrs := []string{
+				"*Customer Impact*",
+				"",
+				"_\\[example: All users attempting to use Help center documentation could not see body content for about 45 minutes from approximately Wed 4/7 at 4:30pm to 5:15pm.]_",
+				"",
+				"*Description*",
+				"",
+				"_\\[example: The body content of Help Center articles were not visible on desktop browsers. After testing, body content was still visible for mobile browsers and desktop in developer “mobile view”. No indication of an outage was surfaced at_ [_status.salesforce.com_|http://status.salesforce.com/] _and no admission of error has been secured from the Salesforce team._",
+				"_Around 5:17pm, all content was again visible without any action taken by the Clever team in our Salesforce instance._",
+				"",
+				"_4/7 4:33pm, first post in #oncall-solutions_",
+				"_4/7 4:34pm, flare fired_",
+				"_4/7 4:37pm, messages in motion to contractor, account manager, & Salesforce support_",
+				"_4/7 4:54pm, status page updated_",
+				"_4/7 5:17pm, HC live again_",
+				"_4/7 5:22pm, status page - mitigated_",
+				"_4/7 5:22pm, flare mitigated]_",
+				"",
+				"*Followup*",
+				"",
+				"_\\[example: Webex meeting with Salesforce support on Monday, 4/12 to continue investigation into root issue]_",
+				"",
+			}
+			flareFollowupTemplate := strings.Join(flareFollowupTemplateStrs, "\n")
+			desc := fmt.Sprintf("%s[Flare Doc|%s]    [Slack History|%s]", flareFollowupTemplate, flareDoc.File.AlternateLink, slackHistoryDoc.File.AlternateLink)
 			err = JiraServer.SetDescription(ticket, desc)
 			if err != nil {
 				// It's OK if we continue here, and don't error out
