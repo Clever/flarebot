@@ -456,6 +456,8 @@ func main() {
 				"",
 				"_\\[example: Webex meeting with Salesforce support on Monday, 4/12 to continue investigation into root issue]_",
 				"",
+				"",
+				"",
 			}
 			flareFollowupTemplate := strings.Join(flareFollowupTemplateStrs, "\n")
 			desc := fmt.Sprintf("%s[Flare Doc|%s]    [Slack History|%s]", flareFollowupTemplate, flareDoc.File.AlternateLink, slackHistoryDoc.File.AlternateLink)
