@@ -283,7 +283,7 @@ func main() {
 			client.Send(fmt.Sprintf("Unable to determine JIRA user by email: %s", author.Profile.Email), msg.Channel)
 		}
 
-		client.Send(fmt.Sprintf("JIRA username is %s", user.Name), msg.Channel)
+		client.Send(fmt.Sprintf("JIRA user ID is %s", user.AccountId), msg.Channel)
 
 		channel, err := client.API.GetConversationInfo(msg.Channel, false)
 		if err != nil {

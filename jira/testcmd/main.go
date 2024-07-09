@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/Clever/flarebot/jira"
@@ -58,6 +59,29 @@ func (jc *jiraCommand) SetDescriptionCommand(cmd *cobra.Command, args []string) 
 	fmt.Printf("Set description to '%s'\n", args[1])
 }
 
+func (jc *jiraCommand) CreateTicketCommand(cmd *cobra.Command, args []string) {
+	if len(args) != 3 {
+		log.Fatalf("A priority, description and assignee must be provided\n")
+	}
+
+	assignee, err := jc.jiraServer.GetUserByEmail(args[2])
+	fmt.Printf("User object:\n")
+	spew.Dump(assignee)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	priority, err := strconv.Atoi(args[0])
+	if err != nil {
+		log.Fatal(err)
+	}
+	ticket, err := jc.jiraServer.CreateTicket(priority, args[1], assignee)
+
+	fmt.Printf("Ticket created:\n")
+	spew.Dump(ticket)
+}
+
 func main() {
 	jc := jiraCommand{
 		jiraServer: jira.JiraServer{
@@ -88,9 +112,16 @@ func main() {
 		Run:   jc.SetDescriptionCommand,
 	}
 
+	var cmdCreateTicket = &cobra.Command{
+		Use:   "createTicket <priority> <topic> <assignee-email>",
+		Short: "creates ticket with given assignee",
+		Run:   jc.CreateTicketCommand,
+	}
+
 	var rootCmd = &cobra.Command{Use: "jira-cli"}
 	rootCmd.AddCommand(cmdGetUserByEmail)
 	rootCmd.AddCommand(cmdGetTicket)
 	rootCmd.AddCommand(cmdSetDescription)
+	rootCmd.AddCommand(cmdCreateTicket)
 	rootCmd.Execute()
 }
