@@ -170,7 +170,7 @@ func (server *JiraServer) CreateTicket(priority int, topic string, assignee *Use
 				"id": server.IssueTypeID,
 			},
 			"assignee": &map[string]interface{}{
-				"name": assignee.Name,
+				"accountId": assignee.AccountId,
 			},
 			"summary": topic,
 			"priority": &map[string]interface{}{
@@ -205,7 +205,7 @@ func (server *JiraServer) CreateTicketNewGen(priority *int, topic string, assign
 					"id": server.IssueTypeID,
 				},
 				"assignee": &map[string]interface{}{
-					"name": assignee.Name,
+					"accountId": assignee.AccountId,
 				},
 				"summary": topic,
 			},
@@ -220,7 +220,7 @@ func (server *JiraServer) CreateTicketNewGen(priority *int, topic string, assign
 					"id": server.IssueTypeID,
 				},
 				"assignee": &map[string]interface{}{
-					"name": assignee.Name,
+					"accountId": assignee.AccountId,
 				},
 				"summary": topic,
 				"priority": &map[string]interface{}{
