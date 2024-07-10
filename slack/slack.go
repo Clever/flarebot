@@ -108,7 +108,7 @@ func (c *Client) GetPin(pattern *regexp.Regexp, channelID string) (string, error
 			return m.Message.Text, nil
 		}
 	}
-	return "", nil
+	return "", fmt.Errorf("No pinned message matched the pattern")
 }
 
 func (c *Client) handleMessage(msg *slk.MessageEvent) {
