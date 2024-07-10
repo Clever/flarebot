@@ -82,6 +82,19 @@ func (jc *jiraCommand) CreateTicketCommand(cmd *cobra.Command, args []string) {
 	spew.Dump(ticket)
 }
 
+func (jc *jiraCommand) GetProjectCommand(cmd *cobra.Command, args []string) {
+	if len(args) != 1 {
+		log.Fatalf("A single jira project key must be provided\n")
+	}
+
+	project, err := jc.jiraServer.GetProjectByKey(args[0])
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("Project details:\n")
+	spew.Dump(project)
+}
+
 func main() {
 	jc := jiraCommand{
 		jiraServer: jira.JiraServer{
@@ -118,10 +131,17 @@ func main() {
 		Run:   jc.CreateTicketCommand,
 	}
 
+	var cmdGetProject = &cobra.Command{
+		Use:   "getProject <projectKey>",
+		Short: "print the project record for a jira project",
+		Run:   jc.GetProjectCommand,
+	}
+
 	var rootCmd = &cobra.Command{Use: "jira-cli"}
 	rootCmd.AddCommand(cmdGetUserByEmail)
 	rootCmd.AddCommand(cmdGetTicket)
 	rootCmd.AddCommand(cmdSetDescription)
 	rootCmd.AddCommand(cmdCreateTicket)
+	rootCmd.AddCommand(cmdGetProject)
 	rootCmd.Execute()
 }
