@@ -229,7 +229,7 @@ func main() {
 		log.Fatalf("no JIRA project exists with id %s: %s", os.Getenv("JIRA_PROJECT_ID"), err.Error())
 	}
 
-	flareChannelNamePrefix = regexp.MustCompile(fmt.Sprintf("^%s-", strings.ToLower(jiraProject.Name)))
+	flareChannelNamePrefix = regexp.MustCompile(fmt.Sprintf("^%s-", strings.ToLower(jiraProject.Key)))
 
 	// Google Docs service
 	googleDocsServer, err := googledocs.NewGoogleDocsServerWithServiceAccount(os.Getenv("GOOGLE_FLAREBOT_SERVICE_ACCOUNT_CONF"))
