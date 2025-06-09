@@ -1,0 +1,19 @@
+run:
+  type: docker
+env:
+- SLACK_BOT_TOKEN
+- SLACK_SIGNING_SECRET
+- SLACK_APP_TOKEN
+resources:
+  cpu: 0.25
+  max_mem: 0.5
+shepherds:
+- 'tanmay.sardesai@clever.com'
+expose: []
+team: 'eng-infra'
+pod_config:
+  group: us-west-2
+deploy_config:
+  canaryInProd: false
+  autoDeployEnvs:
+  - clever-dev
