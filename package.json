@@ -1,0 +1,20 @@
+{
+  "name": "flarebot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A slack bot for controlling flares",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@slack/bolt": "^4.4.0"
+  },
+  "devDependencies": {
+    "@clever/prettier-config": "^1.0.0",
+    "@eslint/js": "^9.28.0",
+    "eslint": "^9.28.0",
+    "globals": "^16.2.0",
+    "prettier": "3.5.3"
+  }
+}
