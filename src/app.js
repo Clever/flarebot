@@ -13,6 +13,7 @@ const app = new App({
 })();
 
 app.message("hello", async ({ message, say }) => {
+  console.log("received hello");
   await say({
     blocks: [
       {
@@ -36,6 +37,7 @@ app.message("hello", async ({ message, say }) => {
 });
 
 app.action("button_click", async ({ body, ack, say }) => {
+  console.log("received button click");
   await ack();
   await say(`<@${body.user.id}> clicked the button`);
 });
