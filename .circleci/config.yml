@@ -79,7 +79,7 @@ jobs:
           name: Set up CircleCI artifacts directories
           command: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
       - run: make lint
-      # TODO add `make test` when we have tests
+      - run: make test-js
 
   deploy:
     executor: common-executor

@@ -6,6 +6,8 @@ PKG = github.com/Clever/flarebot
 PKGS := $(shell go list ./... | grep -v /vendor)
 EXECUTABLE := flarebot
 
+TESTS=$(shell cd src/ && find . -name "*.test.js")
+
 FORMATTED_FILES := $(shell find src/ -name "*.js")
 MODIFIED_FORMATTED_FILES := $(shell git diff --name-only master $(FORMATTED_FILES))
 
@@ -48,7 +50,7 @@ format-all:
 format-check:
 	@echo "Running format check..."
 	@$(PRETTIER) --list-different $(FORMATTED_FILES) || \
-		(echo -e "❌ \033[0;31mPrettier found discrepancies in the above files. Run 'make format' to fix.\033[0m" && false)
+		(echo -e "❌ \033[0;31mPrettier found discrepancies in the above files. Run 'make format(-all)' to fix.\033[0m" && false)
 
 lint-es:
 	@echo "Running eslint..."
@@ -60,6 +62,11 @@ lint-fix:
 		(echo "\033[0;31mThe above errors require manual fixing.\033[0m" && true)
 
 lint: format-check lint-es
+
+test-js: lint $(TESTS)
+
+$(TESTS):
+	./node_modules/jest/bin/jest.js src/$@
 
 run:
 	node src/app.js

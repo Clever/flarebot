@@ -1,4 +1,4 @@
-FROM node:22-slim
+FROM node:24-slim
 
 WORKDIR /flarebot
 # for now we are copying only the relevant files but in the future we could simplify this
