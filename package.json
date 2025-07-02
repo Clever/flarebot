@@ -4,17 +4,18 @@
   "private": true,
   "description": "A slack bot for controlling flares",
   "main": "app.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "dependencies": {
-    "@slack/bolt": "^4.4.0"
+    "@slack/bolt": "^4.4.0",
+    "jira.js": "^5.2.1",
+    "kayvee": "^3.18.0"
   },
   "devDependencies": {
     "@clever/prettier-config": "^1.0.0",
     "@eslint/js": "^9.28.0",
     "eslint": "^9.28.0",
+    "eslint-plugin-jest": "^28.13.3",
     "globals": "^16.2.0",
+    "jest": "^30.0.0",
     "prettier": "3.5.3"
   }
 }

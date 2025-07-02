@@ -4,6 +4,13 @@ env:
 - SLACK_BOT_TOKEN
 - SLACK_SIGNING_SECRET
 - SLACK_APP_TOKEN
+- FLARES_CHANNEL_ID
+- FLARES_CHANNEL_NAME
+- FLARE_CHANNEL_PREFIX
+- JIRA_ORIGIN
+- JIRA_USERNAME
+- JIRA_PASSWORD
+- JIRA_PROJECT_ID
 resources:
   cpu: 0.25
   max_mem: 0.5
@@ -17,3 +24,4 @@ deploy_config:
   canaryInProd: false
   autoDeployEnvs:
   - clever-dev
+  # stop deploying to clever-dev when we launch in production
