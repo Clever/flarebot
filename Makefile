@@ -6,9 +6,9 @@ PKG = github.com/Clever/flarebot
 PKGS := $(shell go list ./... | grep -v /vendor)
 EXECUTABLE := flarebot
 
-TESTS=$(shell cd src/ && find . -name "*.test.js")
+TESTS=$(shell cd src/ && find . -name "*.test.ts")
 
-FORMATTED_FILES := $(shell find src/ -name "*.js")
+FORMATTED_FILES := $(shell find src/ -name "*.ts")
 MODIFIED_FORMATTED_FILES := $(shell git diff --name-only master $(FORMATTED_FILES))
 
 PRETTIER := ./node_modules/.bin/prettier
@@ -66,7 +66,10 @@ lint: format-check lint-es
 test-js: lint $(TESTS)
 
 $(TESTS):
-	./node_modules/jest/bin/jest.js src/$@
+	NODE_ENV=test ./node_modules/jest/bin/jest.js src/$@
 
-run:
-	node src/app.js
+build-ts:
+	./node_modules/.bin/tsc -p .
+
+run: build-ts
+	node dist/app.js

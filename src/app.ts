@@ -1,4 +1,4 @@
-const app = require("./bot");
+import app from "./bot";
 
 (async () => {
   await app.start();

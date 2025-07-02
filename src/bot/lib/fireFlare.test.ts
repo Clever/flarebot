@@ -1,5 +1,5 @@
 /* eslint-env jest */
-const { extractPriorityAndTitle } = require("./fireFlare");
+import { extractPriorityAndTitle } from "./fireFlare";
 
 describe("extractPriorityAndTitle", () => {
   const cases = [
@@ -8,7 +8,7 @@ describe("extractPriorityAndTitle", () => {
       expected: {
         priority: "0",
         title: "Something broke",
-        specialType: null,
+        specialType: "",
       },
     },
     {
@@ -16,7 +16,7 @@ describe("extractPriorityAndTitle", () => {
       expected: {
         priority: "1",
         title: "Something else",
-        specialType: null,
+        specialType: "",
       },
     },
     {
@@ -24,7 +24,7 @@ describe("extractPriorityAndTitle", () => {
       expected: {
         priority: "2",
         title: "Another p2 issue",
-        specialType: null,
+        specialType: "",
       },
     },
     {
@@ -32,7 +32,7 @@ describe("extractPriorityAndTitle", () => {
       expected: {
         priority: "0",
         title: "Yet another issue",
-        specialType: null,
+        specialType: "",
       },
     },
     {
@@ -40,7 +40,7 @@ describe("extractPriorityAndTitle", () => {
       expected: {
         priority: "1",
         title: "Something urgent",
-        specialType: null,
+        specialType: "",
       },
     },
     {
@@ -48,7 +48,7 @@ describe("extractPriorityAndTitle", () => {
       expected: {
         priority: "2",
         title: "Lots of spaces",
-        specialType: null,
+        specialType: "",
       },
     },
     {
@@ -56,7 +56,7 @@ describe("extractPriorityAndTitle", () => {
       expected: {
         priority: "0",
         title: "UPPERCASE",
-        specialType: null,
+        specialType: "",
       },
     },
     {
@@ -112,9 +112,11 @@ describe("extractPriorityAndTitle", () => {
         expect(result).toBeNull();
       } else {
         expect(result).not.toBeNull();
-        expect(result.specialType).toBe(expected.specialType);
-        expect(result.priority).toBe(expected.priority);
-        expect(result.title).toBe(expected.title);
+        if (result) {
+          expect(result.specialType).toBe(expected.specialType);
+          expect(result.priority).toBe(expected.priority);
+          expect(result.title).toBe(expected.title);
+        }
       }
     });
   });
