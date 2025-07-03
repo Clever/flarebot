@@ -4,3 +4,4 @@ flarebot
 bin/
 vendor/
 node_modules/
+dist/

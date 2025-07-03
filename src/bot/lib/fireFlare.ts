@@ -1,5 +1,8 @@
-const { helpFlaresChannel } = require("./help");
-const jira = require("./jira");
+import config from "./config";
+import { helpFlaresChannel } from "./help";
+import { doJiraTransition } from "./jira";
+import { WebClient } from "@slack/web-api";
+import { Context, KnownEventFromType, SayFn } from "@slack/bolt";
 
 const specialTypeRetroactive = "retroactive";
 
@@ -12,12 +15,28 @@ const specialTypeRetroactive = "retroactive";
 const fireAFlareRegex =
   /fire\s+(?:a\s+)?(?:flare\s+)?(?:(pre[- ]?emptive|retroactive|p0|p1|p2)\s+)?(?:flare\s+)?(?:(pre[- ]?emptive|retroactive|p0|p1|p2)\s+)(?:flare\s+)?(.+)/i;
 
-async function fireFlare({ client, message, say, context }) {
-  const result = extractPriorityAndTitle(message.text);
-  if (!result)
+async function fireFlare({
+  client,
+  message,
+  say,
+  context,
+}: {
+  client: WebClient;
+  message: KnownEventFromType<"message">;
+  say: SayFn;
+  context: Context;
+}) {
+  if (message.subtype !== undefined && message.subtype !== "bot_message") {
+    return;
+  }
+
+  const result = extractPriorityAndTitle(message.text ?? "");
+  if (!result) {
     await say({
-      text: `Sorry! I couldn't extract the priority and title from your message. ${helpFlaresChannel()}`,
+      text: `Sorry! I couldn't extract the priority and title from your message. ${helpFlaresChannel(context.botUserId)}`,
     });
+    return;
+  }
   const { specialType, priority, title } = result;
 
   if (specialType) {
@@ -41,7 +60,7 @@ async function fireFlare({ client, message, say, context }) {
       fields: {
         summary: title,
         issuetype: { name: "Bug" },
-        project: { id: process.env.JIRA_PROJECT_ID },
+        project: { id: config.JIRA_PROJECT_ID },
         priority: { id: String(Number(priority) + 1) }, // P0 matches 1 and so on
         assignee: { id: jiraUser[0].accountId },
       },
@@ -49,9 +68,9 @@ async function fireFlare({ client, message, say, context }) {
 
     issueKey = newIssue.key;
 
-    await jira.doTransition(context.jiraClient, issueKey, "Start Progress");
+    await doJiraTransition(context.jiraClient, issueKey, "Start Progress");
     if (specialType === specialTypeRetroactive) {
-      await jira.doTransition(context.jiraClient, issueKey, "Mitigate");
+      await doJiraTransition(context.jiraClient, issueKey, "Mitigate");
     }
   } catch (error) {
     throw new Error(`Error creating Jira issue: ${error}`);
@@ -63,7 +82,7 @@ async function fireFlare({ client, message, say, context }) {
       name: issueKey.toLowerCase(),
     });
 
-    flareChannelId = flareChannel.channel.id;
+    flareChannelId = flareChannel.channel?.id ?? "";
 
     await client.conversations.setTopic({
       channel: flareChannelId,
@@ -87,7 +106,7 @@ async function fireFlare({ client, message, say, context }) {
   });
 }
 
-function extractPriorityAndTitle(text) {
+function extractPriorityAndTitle(text: string) {
   const matches = text.match(fireAFlareRegex);
   if (!matches) return null;
   let priority = "";
@@ -96,18 +115,18 @@ function extractPriorityAndTitle(text) {
     priority = matches[1].substring(1);
     specialType = matches[2].toLowerCase();
   } else if (matches[2] && matches[2].length == 2) {
-    specialType = matches[1] ? matches[1].toLowerCase() : null;
+    specialType = matches[1] ? matches[1].toLowerCase() : "";
     priority = matches[2].substring(1);
   }
   if (!priority && !specialType) {
     return null;
   }
 
-  specialType = specialType ? specialType.replace("-", "").replace(" ", "") : null;
+  specialType = specialType ? specialType.replace("-", "").replace(" ", "") : "";
 
   const title = matches[3] ? matches[3].trim() : "";
   if (!title) return null;
   return { specialType, priority, title };
 }
 
-module.exports = { fireFlare, fireAFlareRegex, extractPriorityAndTitle };
+export { fireFlare, fireAFlareRegex, extractPriorityAndTitle };

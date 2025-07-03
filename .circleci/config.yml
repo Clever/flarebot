@@ -55,7 +55,8 @@ jobs:
           command: |
             sed -i.bak s/\${npm_auth_token}/$NPM_TOKEN/ .npmrc_docker
             mv .npmrc_docker .npmrc
-      - run: npm install
+      - run: npm ci
+      - run: make build-ts
       - persist_to_workspace:
           root: ~/Clever
           paths: "."
