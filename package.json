@@ -5,7 +5,9 @@
   "description": "A slack bot for controlling flares",
   "main": "app.js",
   "dependencies": {
+    "@googleapis/drive": "^13.0.1",
     "@slack/bolt": "^4.4.0",
+    "google-auth-library": "^10.1.0",
     "jira.js": "^5.2.1",
     "kayvee": "^3.18.0"
   },
