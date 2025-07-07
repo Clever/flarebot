@@ -194,10 +194,10 @@ const introMessage: KnownBlock[] = [
   {
     type: "section",
     text: {
-      "type": "mrkdwn",
-      "text": "Finally, once the flare is mitigated. Fill out the <https://clever.atlassian.net/browse/TODO| jira ticket> to capture what we know, following instructions <https://clever.atlassian.net/wiki/spaces/ENG/pages/108210465/Flare+Followups#Updating-the-flare-ticket|here> and <https://clever.atlassian.net/wiki/spaces/ENG/pages/108210465/Flare+Followups#Signing-up-for-flare-followup|sign up> for the retro. Optionaly use the <https://docs.google.com/TODO|Flare doc> and schedule a full post-mortem if there was high impact. You can also find the slack history stored in this <https://sheets.google.com/TODO|google sheet>"
-    }
-  }
-]
+      type: "mrkdwn",
+      text: "Finally, once the flare is mitigated. Fill out the <https://clever.atlassian.net/browse/TODO| jira ticket> to capture what we know, following instructions <https://clever.atlassian.net/wiki/spaces/ENG/pages/108210465/Flare+Followups#Updating-the-flare-ticket|here> and <https://clever.atlassian.net/wiki/spaces/ENG/pages/108210465/Flare+Followups#Signing-up-for-flare-followup|sign up> for the retro. Optionaly use the <https://docs.google.com/TODO|Flare doc> and schedule a full post-mortem if there was high impact. You can also find the slack history stored in this <https://sheets.google.com/TODO|google sheet>",
+    },
+  },
+];
 
 export default introMessage;

@@ -105,7 +105,6 @@ async function fireFlare({
       channel: flareChannelId,
       timestamp: introMessageResponse.ts,
     });
-
   } catch (error) {
     throw new Error(`Error creating flare channel: ${error}`);
   }
