@@ -3,6 +3,8 @@ import kayvee from "kayvee";
 import { Version3Client } from "jira.js";
 import config from "../lib/config";
 import { Middleware, SlackEventMiddlewareArgs } from "@slack/bolt";
+import { GoogleAuth } from "google-auth-library";
+import { drive } from "@googleapis/drive";
 
 const logger = new kayvee.logger("flarebot");
 
@@ -16,6 +18,16 @@ const jiraClient = new Version3Client({
   },
 });
 
+const googleAuth = new GoogleAuth({
+  credentials: JSON.parse(config.GOOGLE_FLAREBOT_SERVICE_ACCOUNT_CONF),
+  scopes: ["https://www.googleapis.com/auth/drive"],
+});
+
+const googleDriveClient = drive({
+  version: "v3",
+  auth: googleAuth,
+});
+
 const middleware: Middleware<SlackEventMiddlewareArgs<"app_mention">> = async ({
   payload,
   client,
@@ -27,6 +39,7 @@ const middleware: Middleware<SlackEventMiddlewareArgs<"app_mention">> = async ({
   }
 
   context.jiraClient = jiraClient;
+  context.googleDriveClient = googleDriveClient;
   context.logger = logger;
 
   const now = new Date();
