@@ -3,6 +3,8 @@ import { helpFlaresChannel } from "./help";
 import { doJiraTransition } from "./jira";
 import { WebClient } from "@slack/web-api";
 import { Context, KnownEventFromType, SayFn } from "@slack/bolt";
+import introMessage from "./introMessage";
+import { SectionBlock } from "@slack/types";
 
 const specialTypeRetroactive = "retroactive";
 
@@ -89,9 +91,19 @@ async function fireFlare({
       topic: title,
     });
 
-    await client.chat.postMessage({
+    const introMessageResponse = await client.chat.postMessage({
       channel: flareChannelId,
-      text: `Dummy Intro message for ${issueKey} -- ${title}`,
+      blocks: introMessage,
+      text: (introMessage[0] as SectionBlock).text?.text ?? "", // this is used for notifications. Bolt logs a warning if the text is not set.
+    });
+
+    if (!introMessageResponse.ts) {
+      throw new Error("Unexpected error - intro message response has no timestamp");
+    }
+
+    await client.pins.add({
+      channel: flareChannelId,
+      timestamp: introMessageResponse.ts,
     });
   } catch (error) {
     throw new Error(`Error creating flare channel: ${error}`);
