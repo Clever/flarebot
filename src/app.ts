@@ -20,6 +20,15 @@ app.use(async ({ next, context }) => {
   await next();
 });
 
+// This middleware is used to debug the incoming requests
+// uncomment this only for debugging
+// app.use(async ({ next, payload, body, context }) => {
+//   console.log("payload", payload);
+//   console.log("body", body);
+
+//   await next();
+// });
+
 middleware.register(app);
 listeners.register(app);
 

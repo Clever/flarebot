@@ -7,6 +7,8 @@ COPY src /flarebot/src
 COPY tsconfig.json /flarebot
 COPY package.json /flarebot
 COPY package-lock.json /flarebot
+# this is created during the build process in circleci
+COPY .npmrc /flarebot
 
 RUN npm ci
 

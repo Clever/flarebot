@@ -1,10 +1,7 @@
-import { KnownBlock } from "@slack/types";
+import { AnyBlock } from "@slack/types";
+import { recentDeploysActionID } from "./recentDeploys";
 
-const introMessage = (
-  issueKey: string,
-  flaredoc: string,
-  slackHistoryDoc: string,
-): KnownBlock[] => [
+const introMessage = (issueKey: string, flaredoc: string, slackHistoryDoc: string): AnyBlock[] => [
   {
     type: "section",
     text: {
@@ -95,7 +92,7 @@ const introMessage = (
           text: "Recent Deploys",
           emoji: true,
         },
-        value: "click_me_123",
+        action_id: recentDeploysActionID,
       },
       {
         type: "button",

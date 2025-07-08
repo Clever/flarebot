@@ -10,11 +10,13 @@ const messageMiddleware = async ({
 }: AllMiddlewareArgs & SlackEventMiddlewareArgs<"message">) => {
   // we don't care about all the subtypes. We only care about generic message events.
   if (payload.type !== "message" || payload.subtype !== undefined) {
+    await next();
     return;
   }
 
   // this middleware is only interested in messages that mention the bot.
   if (payload.text && !payload.text.includes(`<@${context.botUserId}>`)) {
+    await next();
     return;
   }
 
@@ -52,8 +54,8 @@ const messageMiddleware = async ({
       context.logger.infoD("request-finished", {
         payload: payload,
         "response-time-ms": new Date().getTime() - now.getTime(),
-        "channel-name": context.channel.name,
-        "user-name": context.user.real_name,
+        "channel-id": context.channel.id,
+        "user-id": context.user.id,
         "status-code": 200,
       });
     } else {
@@ -64,8 +66,8 @@ const messageMiddleware = async ({
       context.logger.infoD("request-finished", {
         payload: payload,
         "response-time-ms": new Date().getTime() - now.getTime(),
-        "channel-name": context.channel.name,
-        "user-name": context.user.real_name,
+        "channel-id": context.channel.id,
+        "user-id": context.user.id,
         "status-code": 400,
       });
     }
@@ -73,8 +75,8 @@ const messageMiddleware = async ({
     context.logger.errorD("request-finished", {
       payload: payload,
       "response-time-ms": new Date().getTime() - now.getTime(),
-      "channel-name": context.channel && context.channel.name ? context.channel.name : "unknown",
-      "user-name": context.user && context.user.real_name ? context.user.real_name : "unknown",
+      "channel-id": context.channel && context.channel.id ? context.channel.id : "unknown",
+      "user-id": context.user && context.user.id ? context.user.id : "unknown",
       "status-code": 500,
       error: error,
     });
