@@ -5,6 +5,8 @@ import { WebClient } from "@slack/web-api";
 import { Context, KnownEventFromType, SayFn } from "@slack/bolt";
 import introMessage from "./introMessage";
 import { SectionBlock } from "@slack/types";
+import { Version3Client } from "jira.js";
+import { drive_v3 } from "@googleapis/drive";
 
 const specialTypeRetroactive = "retroactive";
 
@@ -28,6 +30,9 @@ async function fireFlare({
   say: SayFn;
   context: Context;
 }) {
+  const jiraClient = context.jiraClient as Version3Client;
+  const googleDriveClient = context.googleDriveClient as drive_v3.Drive;
+
   if (message.subtype !== undefined && message.subtype !== "bot_message") {
     return;
   }
@@ -54,11 +59,11 @@ async function fireFlare({
   let issueKey = "";
 
   try {
-    const jiraUser = await context.jiraClient.userSearch.findUsers({
+    const jiraUser = await jiraClient.userSearch.findUsers({
       query: context.user.profile.email,
     });
 
-    const newIssue = await context.jiraClient.issues.createIssue({
+    const newIssue = await jiraClient.issues.createIssue({
       fields: {
         summary: title,
         issuetype: { name: "Bug" },
@@ -70,12 +75,89 @@ async function fireFlare({
 
     issueKey = newIssue.key;
 
-    await doJiraTransition(context.jiraClient, issueKey, "Start Progress");
+    await doJiraTransition(jiraClient, issueKey, "Start Progress");
     if (specialType === specialTypeRetroactive) {
-      await doJiraTransition(context.jiraClient, issueKey, "Mitigate");
+      await doJiraTransition(jiraClient, issueKey, "Mitigate");
     }
   } catch (error) {
-    throw new Error(`Error creating Jira issue: ${error}`);
+    throw new Error("Error creating Jira issue", { cause: error });
+  }
+
+  let flareDocID = "";
+  let slackHistoryDocID = "";
+  // create a google doc for the flare using the template
+  try {
+    let flaredocTitle = `${issueKey}: ${title}`;
+    if (specialType) {
+      flaredocTitle = `${issueKey}: ${title} (${specialType})`;
+    }
+
+    let slackHistoryDocTitle = `${issueKey}: ${title} (Slack History)`;
+    if (specialType) {
+      slackHistoryDocTitle = `${issueKey}: ${title} (${specialType}) (Slack History)`;
+    }
+
+    const flaredoc = await googleDriveClient.files.copy({
+      requestBody: {
+        name: flaredocTitle,
+      },
+      fileId: config.GOOGLE_TEMPLATE_DOC_ID,
+    });
+    flareDocID = flaredoc.data.id ?? "";
+
+    const slackHistoryDoc = await googleDriveClient.files.copy({
+      requestBody: {
+        name: slackHistoryDocTitle,
+      },
+      fileId: config.GOOGLE_SLACK_HISTORY_DOC_ID,
+    });
+    slackHistoryDocID = slackHistoryDoc.data.id ?? "";
+
+    await googleDriveClient.permissions.create({
+      fileId: flareDocID,
+      requestBody: {
+        role: "writer",
+        type: "domain",
+        domain: config.GOOGLE_DOMAIN,
+      },
+    });
+
+    await googleDriveClient.permissions.create({
+      fileId: slackHistoryDocID,
+      requestBody: {
+        role: "writer",
+        type: "domain",
+        domain: config.GOOGLE_DOMAIN,
+      },
+    });
+
+    const flaredocHTML = await googleDriveClient.files.export({
+      fileId: flareDocID,
+      mimeType: "text/html",
+    });
+
+    let html = flaredocHTML.data as string;
+
+    html = html.replace("[FLARE-KEY]", issueKey);
+    html = html.replace(
+      "[START-DATE]",
+      new Date().toLocaleString("en-US", { timeZone: "US/Pacific" }) + " PT",
+    );
+    html = html.replace("[SUMMARY]", title);
+    html = html.replace(
+      "[HISTORY-DOC]",
+      `<a href="https://docs.google.com/spreadsheets/d/${slackHistoryDocID}">${slackHistoryDocTitle}</a>`,
+    );
+
+    await googleDriveClient.files.update({
+      fileId: flareDocID,
+      media: {
+        mimeType: "text/html",
+        body: html,
+      },
+    });
+  } catch (error) {
+    throw new Error("Error creating Google Doc", { cause: error });
   }
 
   let flareChannelId = "";
@@ -91,10 +173,12 @@ async function fireFlare({
       topic: title,
     });
 
+    const introMessageBlock = introMessage(issueKey, flareDocID, slackHistoryDocID);
+
     const introMessageResponse = await client.chat.postMessage({
       channel: flareChannelId,
-      blocks: introMessage,
-      text: (introMessage[0] as SectionBlock).text?.text ?? "", // this is used for notifications. Bolt logs a warning if the text is not set.
+      blocks: introMessageBlock,
+      text: (introMessageBlock[0] as SectionBlock).text?.text ?? "", // this is used for notifications and bolt logs a warning if the text is not set.
     });
 
     if (!introMessageResponse.ts) {
@@ -106,7 +190,7 @@ async function fireFlare({
       timestamp: introMessageResponse.ts,
     });
   } catch (error) {
-    throw new Error(`Error creating flare channel: ${error}`);
+    throw new Error("Error creating flare channel", { cause: error });
   }
 
   let audience = "<!channel>";
