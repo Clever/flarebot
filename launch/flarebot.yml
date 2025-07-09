@@ -15,6 +15,8 @@ env:
 - GOOGLE_DOMAIN
 - GOOGLE_TEMPLATE_DOC_ID
 - GOOGLE_SLACK_HISTORY_DOC_ID
+dependencies:
+  - catapult
 resources:
   cpu: 0.25
   max_mem: 0.5

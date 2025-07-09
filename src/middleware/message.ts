@@ -1,46 +1,24 @@
 import { helpAll } from "../lib/help";
-import kayvee from "kayvee";
-import { Version3Client } from "jira.js";
 import config from "../lib/config";
-import { Middleware, SlackEventMiddlewareArgs } from "@slack/bolt";
-import { GoogleAuth } from "google-auth-library";
-import { drive } from "@googleapis/drive";
+import { AllMiddlewareArgs, SlackEventMiddlewareArgs } from "@slack/bolt";
 
-const logger = new kayvee.logger("flarebot");
-
-const jiraClient = new Version3Client({
-  host: config.JIRA_ORIGIN,
-  authentication: {
-    basic: {
-      email: config.JIRA_USERNAME,
-      apiToken: config.JIRA_PASSWORD,
-    },
-  },
-});
-
-const googleAuth = new GoogleAuth({
-  credentials: JSON.parse(config.GOOGLE_FLAREBOT_SERVICE_ACCOUNT_CONF),
-  scopes: ["https://www.googleapis.com/auth/drive"],
-});
-
-const googleDriveClient = drive({
-  version: "v3",
-  auth: googleAuth,
-});
-
-const middleware: Middleware<SlackEventMiddlewareArgs<"app_mention">> = async ({
+const messageMiddleware = async ({
   payload,
   client,
   context,
   next,
-}) => {
-  if (!payload.text.includes(`<@${context.botUserId}>`)) {
+}: AllMiddlewareArgs & SlackEventMiddlewareArgs<"message">) => {
+  // we don't care about all the subtypes. We only care about generic message events.
+  if (payload.type !== "message" || payload.subtype !== undefined) {
+    await next();
     return;
   }
 
-  context.jiraClient = jiraClient;
-  context.googleDriveClient = googleDriveClient;
-  context.logger = logger;
+  // this middleware is only interested in messages that mention the bot.
+  if (payload.text && !payload.text.includes(`<@${context.botUserId}>`)) {
+    await next();
+    return;
+  }
 
   const now = new Date();
   try {
@@ -76,8 +54,8 @@ const middleware: Middleware<SlackEventMiddlewareArgs<"app_mention">> = async ({
       context.logger.infoD("request-finished", {
         payload: payload,
         "response-time-ms": new Date().getTime() - now.getTime(),
-        "channel-name": context.channel.name,
-        "user-name": context.user.real_name,
+        "channel-id": context.channel.id,
+        "user-id": context.user.id,
         "status-code": 200,
       });
     } else {
@@ -88,8 +66,8 @@ const middleware: Middleware<SlackEventMiddlewareArgs<"app_mention">> = async ({
       context.logger.infoD("request-finished", {
         payload: payload,
         "response-time-ms": new Date().getTime() - now.getTime(),
-        "channel-name": context.channel.name,
-        "user-name": context.user.real_name,
+        "channel-id": context.channel.id,
+        "user-id": context.user.id,
         "status-code": 400,
       });
     }
@@ -97,8 +75,8 @@ const middleware: Middleware<SlackEventMiddlewareArgs<"app_mention">> = async ({
     context.logger.errorD("request-finished", {
       payload: payload,
       "response-time-ms": new Date().getTime() - now.getTime(),
-      "channel-name": context.channel && context.channel.name ? context.channel.name : "unknown",
-      "user-name": context.user && context.user.real_name ? context.user.real_name : "unknown",
+      "channel-id": context.channel && context.channel.id ? context.channel.id : "unknown",
+      "user-id": context.user && context.user.id ? context.user.id : "unknown",
       "status-code": 500,
       error: error,
     });
@@ -109,4 +87,4 @@ const middleware: Middleware<SlackEventMiddlewareArgs<"app_mention">> = async ({
   }
 };
 
-export { middleware };
+export { messageMiddleware };

@@ -71,5 +71,16 @@ $(TESTS):
 build-ts:
 	./node_modules/.bin/tsc -p .
 
+
+# We generally want to use production catapult for testing since we don't run it in dev.
+# To test failure cases you can also set env var for secrets to "x" here.
+
+ifeq ($(_IS_LOCAL), true)
+  export SERVICE_CATAPULT_HTTP_HOST=production--catapult.int.clever.com
+  export SERVICE_CATAPULT_HTTP_PORT=443
+  export SERVICE_CATAPULT_HTTP_PROTO=https
+# export JIRA_PASSWORD=x
+endif
+
 run: build-ts
 	node dist/app.js
