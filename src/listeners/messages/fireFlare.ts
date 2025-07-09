@@ -1,9 +1,8 @@
-import config from "./config";
-import { helpFlaresChannel } from "./help";
-import { doJiraTransition } from "./jira";
-import { WebClient } from "@slack/web-api";
-import { Context, KnownEventFromType, SayFn } from "@slack/bolt";
-import introMessage from "./introMessage";
+import config from "../../lib/config";
+import { helpFlaresChannel } from "../../lib/help";
+import { doJiraTransition } from "../../lib/jira";
+import { AllMiddlewareArgs, SlackEventMiddlewareArgs } from "@slack/bolt";
+import introMessage from "../../lib/introMessage";
 import { SectionBlock } from "@slack/types";
 import { Version3Client } from "jira.js";
 import { drive_v3 } from "@googleapis/drive";
@@ -13,8 +12,8 @@ const specialTypeRetroactive = "retroactive";
 // Regex that matches a flare command. The rough explanation is as follows:
 // - Starts with "fire" or "fire a"
 // - "flare" "<preemptive|retroactive>" "<p0|p1|p2>" can come in any order.
-// - Accoding to regex at least one of "<preemptive|retroactive>" or "<p0|p1|p2>" must be present.
-//   but requiring priority is validated in the extractPriorityAndTitle function.
+// - At least one of "<preemptive|retroactive>" or "<p0|p1|p2>" must be present.
+//   But requiring priority is validated in the extractPriorityAndTitle function.
 // - Title is always the last argument.
 const fireAFlareRegex =
   /fire\s+(?:a\s+)?(?:flare\s+)?(?:(pre[- ]?emptive|retroactive|p0|p1|p2)\s+)?(?:flare\s+)?(?:(pre[- ]?emptive|retroactive|p0|p1|p2)\s+)(?:flare\s+)?(.+)/i;
@@ -24,16 +23,15 @@ async function fireFlare({
   message,
   say,
   context,
-}: {
-  client: WebClient;
-  message: KnownEventFromType<"message">;
-  say: SayFn;
-  context: Context;
-}) {
-  const jiraClient = context.jiraClient as Version3Client;
-  const googleDriveClient = context.googleDriveClient as drive_v3.Drive;
+}: AllMiddlewareArgs & SlackEventMiddlewareArgs<"message">) {
+  const jiraClient = context.clients.jiraClient as Version3Client;
+  const googleDriveClient = context.clients.googleDriveClient as drive_v3.Drive;
 
-  if (message.subtype !== undefined && message.subtype !== "bot_message") {
+  if (!jiraClient || !googleDriveClient) {
+    throw new Error("Jira or Google Drive client not found");
+  }
+
+  if (message.subtype !== undefined) {
     return;
   }
 
