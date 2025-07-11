@@ -1,5 +1,6 @@
 import { AnyBlock } from "@slack/types";
 import { recentDeploysActionID } from "./recentDeploys";
+import { flareRolesActionID } from "./flareRoles";
 
 const introMessage = (issueKey: string, flaredoc: string, slackHistoryDoc: string): AnyBlock[] => [
   {
@@ -188,7 +189,7 @@ const introMessage = (issueKey: string, flaredoc: string, slackHistoryDoc: strin
           text: "Flare Roles Definition",
           emoji: true,
         },
-        value: "click_me_123",
+        action_id: flareRolesActionID,
       },
     ],
   },
