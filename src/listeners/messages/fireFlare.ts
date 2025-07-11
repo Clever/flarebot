@@ -166,6 +166,7 @@ async function fireFlare({
 
     flareChannelId = flareChannel.channel?.id ?? "";
 
+
     await client.conversations.setTopic({
       channel: flareChannelId,
       topic: title,
@@ -186,6 +187,11 @@ async function fireFlare({
     await client.pins.add({
       channel: flareChannelId,
       timestamp: introMessageResponse.ts,
+    });
+
+    await client.conversations.invite({
+      channel: flareChannelId,
+      users: context.user.id,
     });
   } catch (error) {
     throw new Error("Error creating flare channel", { cause: error });
