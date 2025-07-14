@@ -1,6 +1,6 @@
 import config from "../../lib/config";
 import { helpFlaresChannel } from "../../lib/help";
-import { doJiraTransition } from "../../lib/jira";
+import { doJiraTransition, jiraDescription } from "../../lib/jira";
 import { AllMiddlewareArgs, SlackEventMiddlewareArgs } from "@slack/bolt";
 import introMessage from "../../lib/introMessage";
 import { SectionBlock } from "@slack/types";
@@ -18,6 +18,9 @@ const specialTypeRetroactive = "retroactive";
 const fireAFlareRegex =
   /fire\s+(?:a\s+)?(?:flare\s+)?(?:(pre[- ]?emptive|retroactive|p0|p1|p2)\s+)?(?:flare\s+)?(?:(pre[- ]?emptive|retroactive|p0|p1|p2)\s+)(?:flare\s+)?(.+)/i;
 
+const jiraErrorMessage =
+  "I'm sorry, I can't seem to connect to Jira right now. So I can't make a ticket or determine the next flare number. If you need to make a new channel to discuss, please don't use the next flare-number channel, that'll confuse me later on.";
+
 async function fireFlare({
   client,
   message,
@@ -28,6 +31,9 @@ async function fireFlare({
   const googleDriveClient = context.clients.googleDriveClient as drive_v3.Drive;
 
   if (!jiraClient || !googleDriveClient) {
+    await say({
+      text: jiraErrorMessage,
+    });
     throw new Error("Jira or Google Drive client not found");
   }
 
@@ -72,13 +78,23 @@ async function fireFlare({
     });
 
     issueKey = newIssue.key;
+  } catch (error) {
+    await say({
+      text: jiraErrorMessage,
+    });
+    throw new Error("Error creating Jira issue", { cause: error });
+  }
 
+  try {
     await doJiraTransition(jiraClient, issueKey, "Start Progress");
     if (specialType === specialTypeRetroactive) {
       await doJiraTransition(jiraClient, issueKey, "Mitigate");
     }
   } catch (error) {
-    throw new Error("Error creating Jira issue", { cause: error });
+    await say({
+      text: "JIRA ticket created but couldn't mark it 'started'. Continuing anyway...",
+    });
+    context.logger.errorD("jira-transition-error", { error: error });
   }
 
   let flareDocID = "";
@@ -155,7 +171,24 @@ async function fireFlare({
       },
     });
   } catch (error) {
-    throw new Error("Error creating Google Doc", { cause: error });
+    await say({
+      text: "I'm having trouble connecting to google drive right now, so I can't make a flare doc for tracking. Continuing anyway...",
+    });
+    context.logger.errorD("google-drive-error", { error: error });
+  }
+
+  try {
+    await jiraClient.issues.editIssue({
+      issueIdOrKey: issueKey,
+      fields: {
+        description: jiraDescription(flareDocID, slackHistoryDocID),
+      },
+    });
+  } catch (error) {
+    await say({
+      text: "JIRA ticket created but couldn't set the description. Continuing anyway...",
+    });
+    context.logger.errorD("jira-description-error", { error: error });
   }
 
   let flareChannelId = "";
@@ -165,7 +198,14 @@ async function fireFlare({
     });
 
     flareChannelId = flareChannel.channel?.id ?? "";
+  } catch (error) {
+    await say({
+      text: `I'm having trouble creating a flare channel. If you need to make a new channel to discuss, please create a channel with name ${issueKey.toLowerCase()}.`,
+    });
+    throw new Error("Error creating flare channel", { cause: error });
+  }
 
+  try {
     await client.conversations.setTopic({
       channel: flareChannelId,
       topic: title,
@@ -187,8 +227,17 @@ async function fireFlare({
       channel: flareChannelId,
       timestamp: introMessageResponse.ts,
     });
+
+    const usersToInvite = [context.user.id, ...config.USERS_TO_INVITE.split(",")];
+    await client.conversations.invite({
+      channel: flareChannelId,
+      users: usersToInvite.join(","),
+    });
   } catch (error) {
-    throw new Error("Error creating flare channel", { cause: error });
+    await say({
+      text: `I'm having trouble setting up the new channel. Continuing anyway...`,
+    });
+    context.logger.errorD("flare-channel-invite-error", { error: error });
   }
 
   let audience = "<!channel>";

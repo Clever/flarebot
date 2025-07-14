@@ -16,6 +16,8 @@ const config = {
   GOOGLE_DOMAIN: getEnvVar("GOOGLE_DOMAIN"),
   GOOGLE_TEMPLATE_DOC_ID: getEnvVar("GOOGLE_TEMPLATE_DOC_ID"),
   GOOGLE_SLACK_HISTORY_DOC_ID: getEnvVar("GOOGLE_SLACK_HISTORY_DOC_ID"),
+
+  USERS_TO_INVITE: getEnvVar("USERS_TO_INVITE"),
 };
 
 export default config;
