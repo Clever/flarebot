@@ -109,7 +109,7 @@ const introMessage = (issueKey: string, flaredoc: string, slackHistoryDoc: strin
     type: "section",
     text: {
       type: "mrkdwn",
-      text: "If you are unfamilar with out tooling, press these buttons below for some quick links to start debugging. *Do not hesitate to ask for help and page others if needed*. If there is high level of customer impact, like downtime, please page CS Managers",
+      text: "If you are unfamilar with our tooling, press these buttons below for some quick links to start debugging. *Do not hesitate to ask for help and page others if needed*. If there is high level of customer impact, like downtime, please page CS Managers",
     },
   },
   {
@@ -196,7 +196,7 @@ const introMessage = (issueKey: string, flaredoc: string, slackHistoryDoc: strin
     type: "section",
     text: {
       type: "mrkdwn",
-      text: `Finally, once the flare is mitigated. Fill out the <https://clever.atlassian.net/browse/${issueKey}| jira ticket> to capture what we know, following instructions <https://clever.atlassian.net/wiki/spaces/ENG/pages/108210465/Flare+Followups#Updating-the-flare-ticket|here> and <https://clever.atlassian.net/wiki/spaces/ENG/pages/108210465/Flare+Followups#Signing-up-for-flare-followup|sign up> for the retro. Optionaly use the <https://docs.google.com/document/d/${flaredoc}|Flare doc> and schedule a full post-mortem if there was high impact. You can also find the slack history stored <https://docs.google.com/spreadsheets/d/${slackHistoryDoc}|here>`,
+      text: `Finally, once the flare is mitigated, fill out the <https://clever.atlassian.net/browse/${issueKey}| jira ticket> to capture what we know, following instructions <https://clever.atlassian.net/wiki/spaces/ENG/pages/108210465/Flare+Followups#Updating-the-flare-ticket|here> and <https://clever.atlassian.net/wiki/spaces/ENG/pages/108210465/Flare+Followups#Signing-up-for-flare-followup|sign up> for the retro. Optionally use the <https://docs.google.com/document/d/${flaredoc}|Flare doc> and schedule a full post-mortem if there was high impact. You can also find the slack history stored <https://docs.google.com/spreadsheets/d/${slackHistoryDoc}|here>`,
     },
   },
 ];

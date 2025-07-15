@@ -15,6 +15,7 @@ env:
 - GOOGLE_DOMAIN
 - GOOGLE_TEMPLATE_DOC_ID
 - GOOGLE_SLACK_HISTORY_DOC_ID
+- USERS_TO_INVITE
 dependencies:
   - catapult
 resources:
