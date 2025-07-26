@@ -5,9 +5,9 @@ import { helpAll, helpFlaresChannel, helpFlareChannel } from "../../lib/help";
 const helpRegex = /help\s*(all)?/i;
 
 async function help({
+  client,
   message,
   context,
-  say,
 }: AllMiddlewareArgs & SlackEventMiddlewareArgs<"message">) {
   if (message.subtype !== undefined && message.subtype !== "bot_message") {
     return;
@@ -24,7 +24,10 @@ async function help({
   } else {
     helpText = helpAll(context.botUserId);
   }
-  await say({
+
+  await client.chat.postMessage({
+    channel: context.channel.id,
+    thread_ts: message.ts,
     text: helpText,
   });
 }
