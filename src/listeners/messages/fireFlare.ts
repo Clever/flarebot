@@ -19,7 +19,7 @@ const fireAFlareRegex =
   /fire\s+(?:a\s+)?(?:flare\s+)?(?:(pre[- ]?emptive|retroactive|p0|p1|p2)\s+)?(?:flare\s+)?(?:(pre[- ]?emptive|retroactive|p0|p1|p2)\s+)(?:flare\s+)?(.+)/i;
 
 const jiraErrorMessage =
-  "I'm sorry, I can't seem to connect to Jira right now. So I can't make a ticket or determine the next flare number. If you need to make a new channel to discuss, please don't use the next flare-number channel, that'll confuse me later on.";
+  "I can't seem to connect to Jira right now. So I can't make a ticket or determine the next flare number. If you need to make a new channel to discuss, please don't use the next flare-number channel, that'll confuse me later on.";
 
 async function fireFlare({
   client,
@@ -29,13 +29,6 @@ async function fireFlare({
 }: AllMiddlewareArgs & SlackEventMiddlewareArgs<"message">) {
   const jiraClient = context.clients.jiraClient as Version3Client;
   const googleDriveClient = context.clients.googleDriveClient as drive_v3.Drive;
-
-  if (!jiraClient || !googleDriveClient) {
-    await say({
-      text: jiraErrorMessage,
-    });
-    throw new Error("Jira or Google Drive client not found");
-  }
 
   if (message.subtype !== undefined) {
     return;
@@ -79,16 +72,13 @@ async function fireFlare({
 
     issueKey = newIssue.key;
   } catch (error) {
-    await say({
-      text: jiraErrorMessage,
-    });
-    throw new Error("Error creating Jira issue", { cause: error });
+    throw new Error(`${jiraErrorMessage}. Error: ${error}.`);
   }
 
   try {
-    await doJiraTransition(jiraClient, issueKey, "Start Progress");
+    await doJiraTransition(jiraClient, issueKey, "In Progress");
     if (specialType === specialTypeRetroactive) {
-      await doJiraTransition(jiraClient, issueKey, "Mitigate");
+      await doJiraTransition(jiraClient, issueKey, "Mitigated");
     }
   } catch (error) {
     await say({
@@ -199,10 +189,9 @@ async function fireFlare({
 
     flareChannelId = flareChannel.channel?.id ?? "";
   } catch (error) {
-    await say({
-      text: `I'm having trouble creating a flare channel. If you need to make a new channel to discuss, please create a channel with name ${issueKey.toLowerCase()}.`,
-    });
-    throw new Error("Error creating flare channel", { cause: error });
+    throw new Error(
+      `Error creating flare channel ${error}. If you need to make a new channel to discuss, please create a channel with name ${issueKey.toLowerCase()}.`,
+    );
   }
 
   try {
@@ -211,7 +200,12 @@ async function fireFlare({
       topic: title,
     });
 
-    const introMessageBlock = introMessage(issueKey, flareDocID, slackHistoryDocID);
+    const introMessageBlock = introMessage(
+      issueKey,
+      flareDocID,
+      slackHistoryDocID,
+      context.botUserId ?? "",
+    );
 
     const introMessageResponse = await client.chat.postMessage({
       channel: flareChannelId,
@@ -220,7 +214,7 @@ async function fireFlare({
     });
 
     if (!introMessageResponse.ts) {
-      throw new Error("Unexpected error - intro message response has no timestamp");
+      throw new Error("Intro message response has no timestamp. This should never happen.");
     }
 
     await client.pins.add({
@@ -256,16 +250,17 @@ function extractPriorityAndTitle(text: string) {
   let specialType = "";
   if (matches[1] && matches[1].length == 2) {
     priority = matches[1].substring(1);
-    specialType = matches[2].toLowerCase();
+    specialType = matches[2];
   } else if (matches[2] && matches[2].length == 2) {
-    specialType = matches[1] ? matches[1].toLowerCase() : "";
+    specialType = matches[1] ? matches[1] : "";
     priority = matches[2].substring(1);
   }
   if (!priority && !specialType) {
     return null;
   }
 
-  specialType = specialType ? specialType.replace("-", "").replace(" ", "") : "";
+  specialType = specialType ? specialType.replace("-", "").replace(" ", "").toLowerCase() : "";
+  priority = priority ? priority.toLowerCase() : "";
 
   const title = matches[3] ? matches[3].trim() : "";
   if (!title) return null;
