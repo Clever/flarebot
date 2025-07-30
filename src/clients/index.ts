@@ -1,5 +1,6 @@
 import config from "../lib/config";
 import { drive } from "@googleapis/drive";
+import { sheets } from "@googleapis/sheets";
 import { GoogleAuth } from "google-auth-library";
 import { Version3Client } from "jira.js";
 import Catapult from "@clever/catapult";
@@ -24,6 +25,11 @@ const googleDriveClient = drive({
   auth: googleAuth,
 });
 
+const googleSheetsClient = sheets({
+  version: "v4",
+  auth: googleAuth,
+});
+
 const catapultClient = new Catapult({
   discovery: true,
 });
@@ -32,4 +38,5 @@ export default class clients {
   static jiraClient = jiraClient;
   static googleDriveClient = googleDriveClient;
   static catapultClient = catapultClient;
+  static googleSheetsClient = googleSheetsClient;
 }
