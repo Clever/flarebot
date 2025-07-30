@@ -5,14 +5,17 @@ async function doJiraTransition(
   ticket: string,
   transitionName: string,
 ) {
-  const resp = await jiraclient.issues.getTransitions({
+  const jiraIssue = await jiraclient.issues.getIssue({
     issueIdOrKey: ticket,
+    expand: "transitions",
   });
 
-  const transition = resp.transitions?.find((t) => t.name === transitionName);
+  const transition = jiraIssue.transitions?.find((t) => t.to?.name === transitionName);
 
   if (!transition) {
-    throw new Error(`Transition ${transitionName} not found`);
+    throw new Error(
+      `Jira transition "${transitionName}" not found. Allowed transitions for current status: [${jiraIssue.transitions?.map((t) => t.to?.name).join(", ")}]`,
+    );
   }
 
   await jiraclient.issues.doTransition({

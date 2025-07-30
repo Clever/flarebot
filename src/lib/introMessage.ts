@@ -1,7 +1,13 @@
 import { AnyBlock } from "@slack/types";
 import { recentDeploysActionID } from "./recentDeploys";
+import { helpFlareChannel } from "./help";
 
-const introMessage = (issueKey: string, flaredoc: string, slackHistoryDoc: string): AnyBlock[] => [
+const introMessage = (
+  issueKey: string,
+  flaredoc: string,
+  slackHistoryDoc: string,
+  botUserId: string,
+): AnyBlock[] => [
   {
     type: "section",
     text: {
@@ -10,70 +16,11 @@ const introMessage = (issueKey: string, flaredoc: string, slackHistoryDoc: strin
     },
   },
   {
-    type: "rich_text",
-    elements: [
-      {
-        type: "rich_text_section",
-        elements: [
-          {
-            type: "text",
-            text: "Here is a list of available commands\n",
-          },
-        ],
-      },
-      {
-        type: "rich_text_list",
-        style: "bullet",
-        indent: 0,
-        elements: [
-          {
-            type: "rich_text_section",
-            elements: [
-              {
-                type: "text",
-                text: "@flarebot i am incident lead",
-              },
-            ],
-          },
-          {
-            type: "rich_text_section",
-            elements: [
-              {
-                type: "text",
-                text: "@flarebot i am comms lead",
-              },
-            ],
-          },
-          {
-            type: "rich_text_section",
-            elements: [
-              {
-                type: "text",
-                text: "@flarebot flare mitigated",
-              },
-            ],
-          },
-          {
-            type: "rich_text_section",
-            elements: [
-              {
-                type: "text",
-                text: "@flarebot not a flare",
-              },
-            ],
-          },
-          {
-            type: "rich_text_section",
-            elements: [
-              {
-                type: "text",
-                text: "@flarebot generate summary",
-              },
-            ],
-          },
-        ],
-      },
-    ],
+    type: "section",
+    text: {
+      type: "mrkdwn",
+      text: helpFlareChannel(botUserId),
+    },
   },
   {
     type: "section",

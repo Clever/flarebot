@@ -5,3 +5,4 @@ bin/
 vendor/
 node_modules/
 dist/
+.cursor/
