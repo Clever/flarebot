@@ -1,0 +1,93 @@
+/* eslint-env jest */
+import { extractCommsLead } from "./commsLead";
+
+describe("extractCommsLead", () => {
+  const testCases = [
+    // Positive cases
+    { text: "i am comms lead", expected: true },
+    { text: "i'm comms lead", expected: true },
+    { text: "I am comms lead", expected: true },
+    { text: "I'm comms lead", expected: true },
+    { text: "I AM COMMS LEAD", expected: true },
+    { text: "I'M COMMS LEAD", expected: true },
+    { text: "i am Comms Lead", expected: true },
+    { text: "i'm Comms Lead", expected: true },
+    { text: "I am the comms lead", expected: true },
+    { text: "I'm the comms lead", expected: true },
+    { text: "i am the comms lead", expected: true },
+    { text: "i'm the comms lead", expected: true },
+    { text: "I am a comms lead", expected: true },
+    { text: "I'm a comms lead", expected: true },
+    { text: "i am a comms lead", expected: true },
+    { text: "i'm a comms lead", expected: true },
+    { text: "I am comms lead for this flare", expected: true },
+    { text: "I'm comms lead for this flare", expected: true },
+    { text: "i am comms lead for this flare", expected: true },
+    { text: "i'm comms lead for this flare", expected: true },
+    { text: "I am the comms lead for this flare", expected: true },
+    { text: "I'm the comms lead for this flare", expected: true },
+    { text: "i am the comms lead for this flare", expected: true },
+    { text: "i'm the comms lead for this flare", expected: true },
+    { text: "I am a comms lead for this flare", expected: true },
+    { text: "I'm a comms lead for this flare", expected: true },
+    { text: "i am a comms lead for this flare", expected: true },
+    { text: "i'm a comms lead for this flare", expected: true },
+    { text: "I am comms lead now", expected: true },
+    { text: "I'm comms lead now", expected: true },
+    { text: "i am comms lead now", expected: true },
+    { text: "i'm comms lead now", expected: true },
+    { text: "I am the comms lead now", expected: true },
+    { text: "I'm the comms lead now", expected: true },
+    { text: "i am the comms lead now", expected: true },
+    { text: "i'm the comms lead now", expected: true },
+    { text: "I am a comms lead now", expected: true },
+    { text: "I'm a comms lead now", expected: true },
+    { text: "i am a comms lead now", expected: true },
+    { text: "i'm a comms lead now", expected: true },
+
+    // Negative cases
+    { text: "comms lead", expected: null },
+    { text: "i am", expected: null },
+    { text: "i'm", expected: null },
+    { text: "I am", expected: null },
+    { text: "I'm", expected: null },
+    { text: "i am lead", expected: null },
+    { text: "i'm lead", expected: null },
+    { text: "I am lead", expected: null },
+    { text: "I'm lead", expected: null },
+    { text: "i am the lead", expected: null },
+    { text: "i'm the lead", expected: null },
+    { text: "I am the lead", expected: null },
+    { text: "I'm the lead", expected: null },
+    { text: "i am a lead", expected: null },
+    { text: "i'm a lead", expected: null },
+    { text: "I am a lead", expected: null },
+    { text: "I'm a lead", expected: null },
+    { text: "i am comms", expected: null },
+    { text: "i'm comms", expected: null },
+    { text: "I am comms", expected: null },
+    { text: "I'm comms", expected: null },
+    { text: "i am the comms", expected: null },
+    { text: "i'm the comms", expected: null },
+    { text: "I am the comms", expected: null },
+    { text: "I'm the comms", expected: null },
+    { text: "i am a comms", expected: null },
+    { text: "i'm a comms", expected: null },
+    { text: "I am a comms", expected: null },
+    { text: "I'm a comms", expected: null },
+    { text: "comms", expected: null },
+    { text: "lead", expected: null },
+    { text: "flare", expected: null },
+    { text: "mitigated", expected: null },
+    { text: "unmitigated", expected: null },
+    { text: "not a flare", expected: null },
+    { text: "not flare", expected: null },
+  ];
+
+  testCases.forEach(({ text, expected }) => {
+    test(`extracts "${expected}" from "${text}"`, () => {
+      const result = extractCommsLead(text);
+      expect(result).toBe(expected);
+    });
+  });
+});
