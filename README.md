@@ -2,164 +2,248 @@
 
 Slack bot that assists in the creation of FLARE support documents.
 
-## Issues & Feature Requests
+# Flarebot - Slack Bolt App Development Guide
 
-Flarebot issues and feature requests should be added to this Github project's issues list.
+This guide covers how to develop, edit, run, and debug the Flarebot Slack Bolt application.
+
+## Overview
+
+Flarebot is a Slack bot built with the Slack Bolt framework for controlling flares. It uses TypeScript for the Slack app logic and Go for additional services.
+
+## Prerequisites
+
+- Node.js 24+ (configured via `@tsconfig/node24`)
+- npm
+- Go 1.24+
+- Slack App credentials (Bot Token, Signing Secret, App Token)
+- Jira credentials
+- Google API credentials
+
+## Project Structure
+
+```
+.
+├── src/                    # TypeScript source files
+│   ├── app.ts             # Main Slack Bolt app entry point
+│   ├── clients/           # External service clients
+│   ├── lib/               # Utility libraries and configuration
+│   │   ├── config.ts      # Environment configuration
+│   │   ├── usersCache.ts  # Slack users caching
+│   │   └── channelsCache.ts # Slack channels caching
+│   ├── listeners/         # Slack event listeners
+│   │   ├── actions/       # Interactive component actions
+│   │   └── messages/      # Message event handlers
+│   ├── middleware/        # Custom middleware
+│   └── types/             # TypeScript type definitions
+├── dist/                  # Compiled JavaScript output
+├── jira/                  # Go Jira integration
+├── slack/                 # Go Slack utilities
+└── googledocs/           # Go Google Docs integration
+```
+
+## Installation
+
+1. Clone the repository
+2. Install Node.js dependencies:
+   ```bash
+   npm install
+   ```
+3. Install Go dependencies:
+   ```bash
+   make install_deps
+   ```
 
 ## Configuration
 
-Flarebot is an OAuth client into Slack, into Google Docs, and an
-HTTP-auth client into JIRA. It needs a lot of configuration.
+The app requires the following environment variables (see `src/lib/config.ts`):
 
-### Slack
+### Slack Configuration
+- `SLACK_BOT_TOKEN` - Bot User OAuth Token
+- `SLACK_SIGNING_SECRET` - Signing Secret for request verification
+- `SLACK_APP_TOKEN` - App-level token for Socket Mode
 
-Flarebot needs to be a full user (not a bot), which means you need to
-have an OAuth app set up to at least get a token. The following
-environment variables are expected.
+### Channel Configuration
+- `FLARES_CHANNEL_ID` - Main flares channel ID
+- `FLARES_CHANNEL_NAME` - Main flares channel name
+- `FLARE_CHANNEL_PREFIX` - Prefix for flare-specific channels
 
-* `SLACK_DOMAIN`: Your team's Slack domain, e.g. `https://<team>.slack.com`
-* `SLACK_USERNAME`: The username you configured the user for in Slack, e.g. `flarebot`
-* `SLACK_CLIENT_ID`: Slack OAuth App client ID
-* `SLACK_CLIENT_SECRET`: Slack OAuth App client secret
-* `SLACK_FLAREBOT_ACCESS_TOKEN`: Slack OAuth access token for the Flarebot user
-* `SLACK_CHANNEL`: the Channel ID where Flarebot should be listening
+### Jira Configuration
+- `JIRA_ORIGIN` - Jira instance URL
+- `JIRA_USERNAME` - Jira username
+- `JIRA_PASSWORD` - Jira API token/password
+- `JIRA_PROJECT_ID` - Jira project ID for flares
 
-### Google
+### Google Configuration
+- `GOOGLE_FLAREBOT_SERVICE_ACCOUNT_CONF` - Service account JSON
+- `GOOGLE_DOMAIN` - Google Workspace domain
+- `GOOGLE_TEMPLATE_DOC_ID` - Template document ID
+- `GOOGLE_SLACK_HISTORY_DOC_ID` - Slack history spreadsheet ID
 
-If you set up Flarebot as a normal Google account, the best you can get is an OAuth token
-that expires after a year. To get a forever-token, to match best-practices, and to not have
-to do an OAuth dance, you should set up Flarebot as a [Google Service Account](https://developers.google.com/identity/protocols/OAuth2ServiceAccount#creatinganaccount).
+### Other Configuration
+- `USERS_TO_INVITE` - Comma-separated list of users to auto-invite
 
-When you generate such an account, Google gives you a JSON-formatted set of service account
-configuration parameters. You'll need this JSON blob as a configuration parameter to Flarebot.
+## Development
 
-The following environment variables are expected:
+### Building the TypeScript Code
 
-* `GOOGLE_DOMAIN`: the domain name of your organization that Flarebot documents will be shared with, e.g. `clever.com`
-* `GOOGLE_CLIENT_ID`: Google OAuth app client ID
-* `GOOGLE_CLIENT_SECRET`: Google OAuth app client secret
-* `GOOGLE_FLAREBOT_SERVICE_ACCOUNT_CONF`: Google Service Account JSON configuration blob
-* `GOOGLE_TEMPLATE_DOC_ID`: the Google Doc ID for the template to copy as the Facts Doc.
-
-### JIRA
-
-JIRA is accessed using HTTP Basic Auth, which means you need a JIRA
-user and you really should run JIRA over SSL. The following
-environment variables are expected:
-
-* `JIRA_ORIGIN`: the web origin where JIRA lives, e.g. `https://<company>.atlassian.net`
-* `JIRA_USERNAME` and `JIRA_PASSWORD`: login for JIRA for Flarebot
-* `JIRA_PRIORITIES`: a comma-separated list of IDs for the priorities P0, P1, P2, in that order.
-* `JIRA_PROJECT_ID`: the JIRA project ID where the ticket should be added
-* `JIRA_ISSUETYPE_ID`: the JIRA issue type ID for the ticket, usually the one that corresponds to `Bug`.
-
-You can test the jira library in isolation by setting the above environment variables and then running:
+```bash
+make build-ts
 ```
+
+This compiles TypeScript files from `src/` to JavaScript in `dist/`.
+
+### Running the App Locally
+
+```bash
+make run
+```
+
+This will:
+1. Build the TypeScript code
+2. Start the Slack Bolt app with Socket Mode
+3. Connect to production Catapult service (when `_IS_LOCAL=true`)
+
+### Code Formatting
+
+The project uses Prettier for code formatting:
+
+```bash
+# Format only modified files
+make format
+
+# Format all TypeScript files
+make format-all
+
+# Check formatting without making changes
+make format-check
+```
+
+### Linting
+
+The project uses ESLint for code quality:
+
+```bash
+# Run ESLint
+make lint-es
+
+# Run ESLint with auto-fix
+make lint-fix
+
+# Run both format check and ESLint
+make lint
+```
+
+### Testing
+
+Run Jest tests:
+
+```bash
+# Run all JavaScript/TypeScript tests
+make test-js
+
+# Run a specific test file
+make src/listeners/messages/fireFlare.test.ts
+```
+
+Run Go tests:
+
+```bash
+make test
+```
+
+## Debugging
+
+### Debug Middleware
+
+The app includes debug middleware in `src/app.ts:37-45` that logs incoming payloads. Uncomment this section to enable request debugging:
+
+```typescript
+app.use(async ({ next, payload, body, context }) => {
+  console.log("payload", payload);
+  console.log("body", body);
+  console.log("users", context.usersCache.users.length);
+  console.log("channels", context.channelsCache.channels);
+  await next();
+});
+```
+
+### Socket Mode
+
+The app runs in Socket Mode, which is ideal for development as it doesn't require a public URL. The connection is established using the `SLACK_APP_TOKEN`.
+
+### Test Commands
+
+Test individual components using the provided CLI tools:
+
+```bash
+# Build test CLIs
 make build
-./bin/jira-cli --help
+
+# Test Jira integration
+./bin/jira-cli
+
+# Test Slack integration
+./bin/slack-cli
 ```
 
+### Common Debugging Tips
 
-### Documentation
+1. **Check Environment Variables**: Ensure all required environment variables are set. The app will throw errors on startup if any are missing (except in test mode).
 
-Flarebot provides links to documentation when a Flare is fired. This link is configured as
+2. **Enable Debug Logging**: Uncomment the debug middleware to see all incoming Slack events and payloads.
 
-* `FLARE_RESOURCES_URL`: a URL of Flare-handling resources, checklists, etc.
+3. **Test in Isolation**: Use the component-specific test CLIs to debug individual integrations.
 
-### Status Page
+4. **Monitor Caches**: The app caches Slack users (updated every 24 hours) and channels. Check cache state in the debug logs.
 
-Flarebot provides a link to Clever's status page management when a Flare is fired. This link is configured as
+5. **Socket Mode Connection**: If the app isn't receiving events, verify:
+   - `SLACK_APP_TOKEN` is valid and starts with `xapp-`
+   - Socket Mode is enabled in your Slack app configuration
+   - The app has the necessary OAuth scopes
 
-* `STATUS_PAGE_URL`: a URL for the status page.
+## Deployment
 
-## Usage
+The app is configured for deployment with:
+- `Dockerfile` for containerization
+- `Procfile` for process management
+- `launch/flarebot.yml` for deployment configuration
 
-### Help
+## Key Features
 
-```
-@flarebot: help
-```
+- **Fire Flare**: Create new incident channels and Jira tickets
+- **Flare Transitions**: Manage flare states (mitigate, not a flare, unmitigate)
+- **Recent Deploys**: Track and display recent deployments
+- **Google Docs Integration**: Create incident documents from templates
+- **Slack History Tracking**: Log messages to Google Sheets
 
-Lists all commands
+## Architecture Notes
 
-### Fire a Flare
+- The app uses Slack's Bolt framework with Socket Mode for real-time events
+- Middleware pattern for request processing and context injection
+- Caching layer for Slack users and channels to reduce API calls
+- TypeScript for type safety and better developer experience
+- Integration with external services (Jira, Google) via dedicated modules
 
-```
-@flarebot: fire a flare p2 District 9 users cannot log in
-@channel: OK, go chat in #flare-4242
-```
+## Contributing
 
-In #flare-4242, @flarebot will:
-* set the topic
-* post a link to the JIRA ticket it created, assigning the reporter.
-* post a link to the Facts Google Doc it created
-* post a link to the Flare Resources page.
+1. Create a feature branch
+2. Make your changes
+3. Run `make lint` to ensure code quality
+4. Run `make test-js` for TypeScript tests and `make test` for Go tests
+5. Submit a pull request
 
+## Troubleshooting
 
-### Declaring Incident Lead
+### App Not Responding to Messages
+- Check if the app is running: Look for "⚡️ Bolt app is running!" in logs
+- Verify the app is invited to the channel
+- Check Socket Mode connection status
 
-Within the Flare-specific channel:
+### Environment Variable Errors
+- All environment variables are required except in test mode (`NODE_ENV=test`)
+- Double-check the variable names match exactly as defined in `src/lib/config.ts`
 
-```
-@flarebot: I am incident lead
-OK, @ben is incident lead
-```
-
-### Declaring not a Flare or Flare mitigated
-
-Within the Flare-specific channel:
-
-```
-@flarebot: not a flare
-```
-
-```
-@flarebot: flare is mitigated
-```
-
-
-## Future Features (Maybe)
-
-In the specific channel:
-
-```
-@flarebot: I am comms lead
-OK, got that
-
-@flarebot: at 10:45am, we see an increase in error rates in oauth service
-OK, logged that to the Facts Doc
-
-@flarebot: right now, we see a decrease in error rates
-OK, logged that at 10:48am to the Facts Doc
-```
-
-## Trickiness
-
-Initially we thought we would use a new "slash" command in Slack,
-e.g. `/fire_flare`, but those integrations are enabled in all rooms,
-which doesn't make sense, and they require webhooks, which makes
-development quite a bit harder, so this isn't worthwhile for now.
-
-Both Google and Slack APIs require full users, not just a Slack bot
-user for example, to do the things we want to do.
-
-## Tech Design
-
-Ideally, the Flarebot process is stateless, looking up state in JIRA
-and Slack. This is relatively easy for interactions in the main Flare
-channel, which is stable and can be referenced by a config
-parameter. It gets a little bit harder for:
-
-* having Flarebot know when to respond in single-Flare-specific channels
-* accumulating state during a Flare and transferring it to a Google doc.
-
-For the first problem, the approach we'll take is:
-
-* ensure that flare channels are named the same as JIRA ticket id.
-* if Flarebot receives a command it recognizes, it will check the channel name against JIRA and ensure it is a ticket in the Flares Project.
-
-# Deployment
-
-On Heroku
-
-If flarebot is down see the [flarebot runbook](https://clever.atlassian.net/wiki/spaces/ENG/pages/81100842/Flarebot).
+### Build Errors
+- Ensure you're using Node.js 24+
+- Run `npm install` to update dependencies
+- Clear the `dist/` directory and rebuild: `rm -rf dist && make build-ts`
