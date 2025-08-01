@@ -135,7 +135,52 @@ make lint
 
 ### Testing
 
-Run Jest tests:
+#### Manual testing in Slack
+
+Run the command `ark start -l` to start an instance on your local machine.
+
+**Note:** If there is an instance running in clever-dev you will need to stop that instance by running a command like:
+
+```
+ark stop -e clever-dev flarebot
+```
+
+After startup, your app may spin for a few moments as it establishes a connection to Slack. (See Slack bolt app documentation to learn more about the app startup flow.)
+
+After spinning for a few moments, you should see a message like the below:
+
+```
+Thu 18:02:51.854 flarebot/local> [INFO]  bolt-app ⚡️ Bolt app is running!
+```
+
+After your app has started successfully, you should be able to message your local bot from Slack by:
+
+1. Going to a Slack channel that has @flarebot-dev as a member.
+2. Message a simple message like `@flarebot-dev help`
+
+Confirm you get a response from the bot. Your local console will aslo show the request with log lines like the below:
+
+```
+Thu 17:54:21.828 flarebot/local> users 1821
+Thu 17:54:21.828 flarebot/local> channels {}
+Thu 17:54:22.195 flarebot/local> {
+	source.title=flarebot.request-finished
+	channel-id:"C09RZS9QV"
+	payload:map[blocks:[map[block_id:GqDWy elements:[map[elements:[map[type:user user_id:U090FAF1X9S] map[text: help type:text]] type:rich_text_section]] type:rich_text]] channel:C09RZS9QV channel_type:channel client_msg_id:e1fa4d88-b587-4464-a772-051af8e7564c event_ts:1754009660.250419 team:T027Y5L9T text:<@U090FAF1X9S> help ts:1754009660.250419 type:message user:U07EQUB5C2X]
+	pod-account:"589690932525"
+	pod-id:"local"
+	pod-region:"us-west-2"
+	pod-shortname:"local"
+	response-time-ms:221
+	status-code:200
+	team:"eng-infra"
+	user-id:"U07EQUB5C2X"
+}
+```
+
+**Note:** If there are other dev instances of flarebot connected, you may not receive messages.
+
+#### Run Jest tests
 
 ```bash
 # Run all JavaScript/TypeScript tests
@@ -145,7 +190,7 @@ make test-js
 make src/listeners/messages/fireFlare.test.ts
 ```
 
-Run Go tests:
+#### Run Go tests
 
 ```bash
 make test
