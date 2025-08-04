@@ -5,7 +5,6 @@ import config from "../../lib/config";
 const incidentLeadRegex = /i(?:'m| am)(?: the)? incident lead/i;
 
 async function incidentLead({
-  client,
   message,
   say,
   context,

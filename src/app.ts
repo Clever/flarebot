@@ -11,12 +11,6 @@ const logger = new kayvee.logger("flarebot");
 const usersCache = new UsersCache();
 const channelsCache = new ChannelsCache();
 
-console.log("starting flarebot...");
-console.log("config", config);
-console.log("SLACK_BOT_TOKEN", config.SLACK_BOT_TOKEN);
-console.log("SLACK_SIGNING_SECRET", config.SLACK_SIGNING_SECRET);
-console.log("SLACK_APP_TOKEN", config.SLACK_APP_TOKEN);
-
 const app = new App({
   token: config.SLACK_BOT_TOKEN,
   signingSecret: config.SLACK_SIGNING_SECRET,
@@ -40,15 +34,15 @@ app.use(async ({ next, context, client }) => {
 
 // This middleware is used to debug the incoming requests
 // uncomment this only for debugging
-app.use(async ({ next, payload, body, context }) => {
-  console.log("payload", payload);
-  console.log("body", body);
+// app.use(async ({ next, payload, body, context }) => {
+//   console.log("payload", payload);
+//   console.log("body", body);
 
-  console.log("users", context.usersCache.users.length);
-  console.log("channels", context.channelsCache.channels);
+//   console.log("users", context.usersCache.users.length);
+//   console.log("channels", context.channelsCache.channels);
 
-  await next();
-});
+//   await next();
+// });
 
 middleware.register(app);
 listeners.register(app);
