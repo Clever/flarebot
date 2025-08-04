@@ -1,6 +1,9 @@
 import { helpAll } from "../lib/help";
 import config from "../lib/config";
-import { AllMiddlewareArgs, SlackEventMiddlewareArgs } from "@slack/bolt";
+import { AllMiddlewareArgs, Context, SlackEventMiddlewareArgs } from "@slack/bolt";
+import { AllMessageEvents } from "@slack/types";
+import { WebClient } from "@slack/web-api";
+import { ChannelsCache } from "../lib/channelsCache";
 
 const messageMiddleware = async ({
   payload,
@@ -8,15 +11,29 @@ const messageMiddleware = async ({
   context,
   next,
 }: AllMiddlewareArgs & SlackEventMiddlewareArgs<"message">) => {
-  // we don't care about all the subtypes. We only care about generic message events.
-  if (payload.type !== "message" || payload.subtype !== undefined) {
+  if (payload.type !== "message") {
     await next();
     return;
   }
 
-  // this middleware is only interested in messages that mention the bot.
+  try {
+    await recordMessage(payload, context, client);
+  } catch (error) {
+    // we don't want to block the main flow if we fail to record message history.
+    context.logger.errorD("record-message-error", {
+      payload: payload,
+      error: error,
+    });
+  }
+
+  // we don't care about all the subtypes. We only care about generic message events
+  // in future we could consider adding support for message_changed if requested
+  if (payload.subtype !== undefined) {
+    return;
+  }
+
+  // flarebot only cares about messages that mention the bot.
   if (payload.text && !payload.text.includes(`<@${context.botUserId}>`)) {
-    await next();
     return;
   }
 
@@ -29,26 +46,13 @@ const messageMiddleware = async ({
       });
       return;
     }
-    const userInfo = await client.users.info({
-      user: payload.user,
-    });
-    context.user = userInfo.user;
 
-    const channelInfo = await client.conversations.info({
-      channel: payload.channel,
-    });
-    if (!channelInfo.channel || !channelInfo.channel.name) {
-      await client.chat.postMessage({
-        channel: payload.channel,
-        text: `Sorry! Missing channel information.`,
-      });
-      return;
-    }
-    context.channel = channelInfo.channel;
+    context.user = await context.usersCache.getUser(client, payload.user);
+    context.channel = await context.channelsCache.getChannel(client, payload.channel);
 
     if (
-      channelInfo.channel.name === config.FLARES_CHANNEL_NAME ||
-      channelInfo.channel.name.startsWith(config.FLARE_CHANNEL_PREFIX)
+      context.channel.name === config.FLARES_CHANNEL_NAME ||
+      context.channel.name.startsWith(config.FLARE_CHANNEL_PREFIX)
     ) {
       await next();
       context.logger.infoD("request-finished", {
@@ -86,5 +90,113 @@ const messageMiddleware = async ({
     });
   }
 };
+
+async function recordMessage(payload: AllMessageEvents, context: Context, client: WebClient) {
+  const channelsCache = context.channelsCache as ChannelsCache;
+
+  const channelHistoryDocId = await channelsCache.getChannelHistoryDocId(
+    client,
+    payload.channel,
+    context.botUserId ?? "",
+  );
+
+  if (!channelHistoryDocId) {
+    return;
+  }
+
+  /*
+    The message event is documented here: https://api.slack.com/events/message/
+    A message event can be either a generic message event which has subtype=undefined or a subtype event.
+    Subtype events can be of many types for example, channel_join, channel_archive, pinned_item, etc.
+    There is no point in tracking every single message event. Lets do our best to track the most important ones:
+    - undefined: A generic message event
+    - message_replied: A message thread received a reply
+    - message_changed: A message was edited
+    - message_deleted: A message was deleted
+    - channel_join: A user joined a channel
+    - channel_leave: A user left a channel
+
+    We handle these events separately because:
+    - we need to add a different prefix for different event types
+    - some fields are only present in some event types
+
+  */
+  let message = "";
+  let user = "";
+  if (payload.subtype === undefined) {
+    message = payload.text || "";
+    // this handles a bug in the slack api described here https://api.slack.com/events/message/message_replied
+    // where message_replied is not set as a subtype in some cases.
+    if (payload.thread_ts) {
+      message = `(message_replied ${payload.thread_ts}) ${message}`;
+    }
+    user = payload.user;
+  } else if (payload.subtype === "message_replied") {
+    if ("text" in payload.message && payload.message.text) {
+      message = `(message_replied ${payload.message.thread_ts}): ${payload.message.text}`;
+    }
+    if ("user" in payload.message && payload.message.user) {
+      user = payload.message.user;
+    }
+  } else if (payload.subtype === "message_changed") {
+    if (
+      "text" in payload.message &&
+      payload.message.text &&
+      "text" in payload.previous_message &&
+      payload.previous_message.text &&
+      payload.message.text !== payload.previous_message.text
+    ) {
+      message = `(message_changed ${payload.message.ts}): ${payload.message.text}`;
+    }
+    if ("user" in payload.message && payload.message.user) {
+      user = payload.message.user;
+    }
+  } else if (payload.subtype === "message_deleted") {
+    message = `(message_deleted ${payload.previous_message.ts}): Message deleted`;
+    if ("user" in payload.previous_message && payload.previous_message.user) {
+      user = payload.previous_message.user;
+    }
+  } else if (payload.subtype === "channel_join" || payload.subtype === "channel_leave") {
+    message = payload.text || "";
+    user = payload.user;
+  }
+  if (message === "" || user === "") {
+    context.logger.debugD("message-not-recorded", { payload: payload });
+    return;
+  }
+
+  // Replace Slack user mentions with actual names in the message so that history is more readable.
+  const mentionMatches = message.match(/<@([A-Z0-9]+)>/g);
+  if (mentionMatches) {
+    for (const match of mentionMatches) {
+      const userId = match.match(/<@([A-Z0-9]+)>/)?.[1];
+      if (userId) {
+        const user = await context.usersCache.getUser(client, userId);
+        const userName = user ? `@${user.real_name || user.name || userId}` : match;
+        message = message.replace(match, userName);
+      }
+    }
+  }
+
+  const author = await context.usersCache.getUser(client, user);
+
+  await context.clients.googleSheetsClient.spreadsheets.values.append({
+    spreadsheetId: channelHistoryDocId,
+    range: "Sheet1",
+    valueInputOption: "USER_ENTERED",
+    insertDataOption: "INSERT_ROWS",
+    requestBody: {
+      values: [
+        [
+          payload.ts,
+          new Date(parseInt(payload.ts) * 1000).toLocaleString("en-US", { timeZone: "US/Pacific" }),
+          author ? `${author.real_name || author.name || author.id}` : user,
+          message,
+        ],
+      ],
+      majorDimension: "ROWS",
+    },
+  });
+}
 
 export { messageMiddleware };

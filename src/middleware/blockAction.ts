@@ -15,15 +15,8 @@ const blockActionMiddleware = async ({
 
   const now = new Date();
   try {
-    const userInfo = await client.users.info({
-      user: body.user.id,
-    });
-    context.user = userInfo.user;
-
-    const channelInfo = await client.conversations.info({
-      channel: body.channel?.id ?? "",
-    });
-    context.channel = channelInfo.channel;
+    context.user = await context.usersCache.getUser(client, body.user?.id ?? "");
+    context.channel = await context.channelsCache.getChannel(client, body.channel?.id ?? "");
 
     await next();
     context.logger.infoD("request-finished", {

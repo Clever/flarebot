@@ -139,6 +139,8 @@ const introMessage = (
       },
     ],
   },
+  // if intro message is updated so that this block is not the last one
+  // then update recordMessage to account for the changes
   {
     type: "section",
     text: {

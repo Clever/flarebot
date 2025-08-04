@@ -188,6 +188,7 @@ async function fireFlare({
     });
 
     flareChannelId = flareChannel.channel?.id ?? "";
+    context.channelsCache.setChannel(flareChannelId, flareChannel.channel, slackHistoryDocID);
   } catch (error) {
     throw new Error(
       `Error creating flare channel ${error}. If you need to make a new channel to discuss, please create a channel with name ${issueKey.toLowerCase()}.`,
