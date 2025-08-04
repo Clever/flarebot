@@ -104,12 +104,29 @@ async function recordMessage(payload: AllMessageEvents, context: Context, client
     return;
   }
 
-  // there is no point in tracking every single message event. Lets do our best to track the most important ones.
+  /*
+    The message event is documented here: https://api.slack.com/events/message/
+    A message event can be either a generic message event which has subtype=undefined or a subtype event.
+    Subtype events can be of many types for example, channel_join, channel_archive, pinned_item, etc.
+    There is no point in tracking every single message event. Lets do our best to track the most important ones:
+    - undefined: A generic message event
+    - message_replied: A message thread received a reply
+    - message_changed: A message was edited
+    - message_deleted: A message was deleted
+    - channel_join: A user joined a channel
+    - channel_leave: A user left a channel
+
+    We handle these events separately because:
+    - we need to add a different prefix for different event types
+    - some fields are only present in some event types
+
+  */
   let message = "";
   let user = "";
   if (payload.subtype === undefined) {
     message = payload.text || "";
     // this handles a bug in the slack api described here https://api.slack.com/events/message/message_replied
+    // where message_replied is not set as a subtype in some cases.
     if (payload.thread_ts) {
       message = `(message_replied ${payload.thread_ts}) ${message}`;
     }
@@ -148,7 +165,7 @@ async function recordMessage(payload: AllMessageEvents, context: Context, client
     return;
   }
 
-  // Replace Slack user mentions with actual names in the message
+  // Replace Slack user mentions with actual names in the message so that history is more readable.
   const mentionMatches = message.match(/<@([A-Z0-9]+)>/g);
   if (mentionMatches) {
     for (const match of mentionMatches) {
