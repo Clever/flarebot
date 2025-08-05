@@ -6,6 +6,11 @@ describe("incidentLeadRegex", () => {
     expect(text.match(incidentLeadRegex)).toBeTruthy();
   });
 
+  it("should match 'incident lead' (case insensitive)", () => {
+    const text = "incident lead";
+    expect(text.match(incidentLeadRegex)).toBeTruthy();
+  });
+
   it("should match 'I am incident lead' (case insensitive)", () => {
     const text = "I am incident lead";
     expect(text.match(incidentLeadRegex)).toBeTruthy();
