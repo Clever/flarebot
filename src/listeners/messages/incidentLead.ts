@@ -2,7 +2,8 @@ import { AllMiddlewareArgs, SlackEventMiddlewareArgs } from "@slack/bolt";
 import { Version3Client } from "jira.js";
 import config from "../../lib/config";
 
-const incidentLeadRegex = /^(?:.*\b)?(?:i(?:'m| am)(?: the)? |^)incident lead/i;
+const incidentLeadRegex =
+  /^(?:incident lead\b|.*\bi(?:'m| am)(?: the)? incident lead)|^\S+\s+incident lead$/i;
 
 async function incidentLead({
   client,

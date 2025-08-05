@@ -1,7 +1,12 @@
 import { incidentLeadRegex } from "./incidentLead";
 
 describe("incidentLeadRegex", () => {
-  it("should match 'incident lead' (case insensitive)", () => {
+  it("should match when tagging flarebot with just 'incident lead'", () => {
+    const text = "@somebot incident lead";
+    expect(text.match(incidentLeadRegex)).toBeTruthy();
+  });
+
+  it("should match when just saying 'incident lead'", () => {
     const text = "incident lead";
     expect(text.match(incidentLeadRegex)).toBeTruthy();
   });
