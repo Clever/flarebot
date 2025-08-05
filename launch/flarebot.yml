@@ -31,4 +31,4 @@ deploy_config:
   canaryInProd: false
   autoDeployEnvs:
   - clever-dev
-  # stop deploying to clever-dev when we launch in production
+  - production
