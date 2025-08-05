@@ -1,6 +1,11 @@
 import { incidentLeadRegex } from "./incidentLead";
 
 describe("incidentLeadRegex", () => {
+  it("should match 'incident lead' (case insensitive)", () => {
+    const text = "incident lead";
+    expect(text.match(incidentLeadRegex)).toBeTruthy();
+  });
+
   it("should match 'i am incident lead'", () => {
     const text = "i am incident lead";
     expect(text.match(incidentLeadRegex)).toBeTruthy();
