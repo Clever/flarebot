@@ -3,6 +3,7 @@ import { Version3Client } from "jira.js";
 import { helpFlareChannel } from "../../lib/help";
 import { doJiraTransition } from "../../lib/jira";
 import config from "../../lib/config";
+import { setListenerMatch } from "../../lib/listenerMatch";
 
 const flareTransitionRegex =
   /(?:flare )?(?:is )?(mitigat(?:ed|e)|not (?:a )?flare|unmitigat(?:ed|e))/i;
@@ -13,6 +14,7 @@ async function flareTransition({
   say,
   context,
 }: AllMiddlewareArgs & SlackEventMiddlewareArgs<"message">) {
+  setListenerMatch(context);
   const jiraClient = context.clients.jiraClient as Version3Client;
 
   if (message.subtype !== undefined) {

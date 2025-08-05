@@ -4,6 +4,7 @@ import { AllMiddlewareArgs, Context, SlackEventMiddlewareArgs } from "@slack/bol
 import { AllMessageEvents } from "@slack/types";
 import { WebClient } from "@slack/web-api";
 import { ChannelsCache } from "../lib/channelsCache";
+import { isListenerMatch } from "../lib/listenerMatch";
 
 const messageMiddleware = async ({
   payload,
@@ -43,6 +44,7 @@ const messageMiddleware = async ({
       await client.chat.postMessage({
         channel: payload.channel ?? "",
         text: `Sorry! Missing user or channel information in the event payload.`,
+        thread_ts: payload.ts,
       });
       return;
     }
@@ -66,6 +68,7 @@ const messageMiddleware = async ({
       await client.chat.postMessage({
         channel: payload.channel,
         text: `Sorry! I can't help you with that. I am only allowed to reply to messages in the <#${config.FLARES_CHANNEL_ID}> channel or a flare channel. ${helpAll(context.botUserId)}`,
+        thread_ts: payload.ts,
       });
       context.logger.infoD("request-finished", {
         payload: payload,
@@ -73,6 +76,14 @@ const messageMiddleware = async ({
         "channel-id": context.channel.id,
         "user-id": context.user.id,
         "status-code": 400,
+      });
+    }
+
+    if (!isListenerMatch(context)) {
+      await client.chat.postMessage({
+        channel: payload.channel,
+        text: `I'm sorry, I didn't understand that command. I can help you with the following commands: ${helpAll(context.botUserId)}`,
+        thread_ts: payload.ts,
       });
     }
   } catch (error) {
@@ -87,6 +98,7 @@ const messageMiddleware = async ({
     await client.chat.postMessage({
       channel: payload.channel ?? "",
       text: `Sorry! I'm having trouble processing your request. ${error}`,
+      thread_ts: payload.ts,
     });
   }
 };

@@ -6,9 +6,9 @@ import { incidentLeadRegex, incidentLead } from "./incidentLead";
 
 const register = (app: App) => {
   app.message(fireAFlareRegex, fireFlare);
-  app.message(helpRegex, help);
   app.message(flareTransitionRegex, flareTransition);
   app.message(incidentLeadRegex, incidentLead);
+  app.message(helpRegex, help);
 };
 
 export default { register };
