@@ -5,11 +5,13 @@ import config from "../../lib/config";
 const incidentLeadRegex = /i(?:'m| am)(?: the)? incident lead/i;
 
 async function incidentLead({
+  client,
   message,
   say,
   context,
 }: AllMiddlewareArgs & SlackEventMiddlewareArgs<"message">) {
   const jiraClient = context.clients.jiraClient as Version3Client;
+  const channelId = context.channel.id;
 
   if (message.subtype !== undefined) {
     return;
@@ -24,7 +26,9 @@ async function incidentLead({
 
   const jiraTicket = context.channel.name.toUpperCase();
 
-  await say({
+  await client.chat.postMessage({
+    channel: channelId,
+    thread_ts: message.ts, // to avoid noise in the channel, the new flarebot tries to posts in thread whenever possible
     text: "working on assigning incident lead....",
   });
 
@@ -44,7 +48,9 @@ async function incidentLead({
       },
     });
 
-    await say({
+    await client.chat.postMessage({
+      channel: channelId,
+      thread_ts: message.ts,
       text: `Oh Captain My Captain! <@${context.user.id}> is now incident lead. Please confirm all actions with them.`,
     });
   } catch (error) {
