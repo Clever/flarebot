@@ -1,6 +1,7 @@
 import { AllMiddlewareArgs, SlackEventMiddlewareArgs } from "@slack/bolt";
 import config from "../../lib/config";
 import { helpAll, helpFlaresChannel, helpFlareChannel } from "../../lib/help";
+import { setListenerMatch } from "../../lib/listenerMatch";
 
 const helpRegex = /help\s*(all)?/i;
 
@@ -9,6 +10,7 @@ async function help({
   message,
   context,
 }: AllMiddlewareArgs & SlackEventMiddlewareArgs<"message">) {
+  setListenerMatch(context);
   if (message.subtype !== undefined && message.subtype !== "bot_message") {
     return;
   }

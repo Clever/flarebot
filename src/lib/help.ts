@@ -15,7 +15,7 @@ Commands available in a flare channel (Text in [ ] is optional):
 
 <@${botUserId}> help [all] - Display the list of commands available in this/all channel.
 <@${botUserId}> [i am] incident lead - Declare yourself incident lead.
-<@${botUserId}> [i am] comms lead - Declare yourself comms lead.
+<@${botUserId}> [i am] comms lead - Declare yourself comms lead. (currently supported via zapier)
 <@${botUserId}> [flare is] mitigate[d] - Mark the Flare as mitigated.
 <@${botUserId}> [flare is] not a flare - Mark the Flare as not-a-flare.
 <@${botUserId}> [flare is] unmitigate[d] - Mark the Flare as in-progress.

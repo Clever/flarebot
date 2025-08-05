@@ -63,13 +63,13 @@ const recentDeploysModalView = (deployments?: Catapult.Models.DeploymentV2[]): M
           {
             type: "mrkdwn",
             text: deployment.build
-              ? `<https://github.com/Clever/catapult/commit/${deployment.build}|build - ${deployment.build}>`
+              ? `<https://github.com/Clever/${deployment.envProvider?.repo}/commit/${deployment.build}|build - ${deployment.build}>`
               : "unknown",
           },
           {
             type: "mrkdwn",
             text: deployment.envProvider
-              ? `<https://github.com/Clever/ark-config/tree/${deployment.build}/apps/${deployment.envProvider.repo}|config - ${deployment.build}>`
+              ? `<https://github.com/Clever/ark-config/tree/${shortSha(deployment.envProvider?.ref)}/apps/${deployment.application}|config - ${shortSha(deployment.envProvider.ref)}>`
               : "unknown",
           },
         ],
@@ -90,6 +90,13 @@ const recentDeploysModalView = (deployments?: Catapult.Models.DeploymentV2[]): M
     blocks: blocks,
   };
 };
+
+function shortSha(sha: string | undefined): string {
+  if (sha === undefined) {
+    return "unknown";
+  }
+  return sha.slice(0, 7);
+}
 
 const errorModalView = (error: string): ModalView => {
   const blocks = [...baseBlocks];

@@ -6,6 +6,7 @@ import introMessage from "../../lib/introMessage";
 import { SectionBlock } from "@slack/types";
 import { Version3Client } from "jira.js";
 import { drive_v3 } from "@googleapis/drive";
+import { setListenerMatch } from "../../lib/listenerMatch";
 
 const specialTypeRetroactive = "retroactive";
 
@@ -27,6 +28,7 @@ async function fireFlare({
   say,
   context,
 }: AllMiddlewareArgs & SlackEventMiddlewareArgs<"message">) {
+  setListenerMatch(context);
   const jiraClient = context.clients.jiraClient as Version3Client;
   const googleDriveClient = context.clients.googleDriveClient as drive_v3.Drive;
 

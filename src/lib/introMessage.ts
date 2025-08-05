@@ -1,6 +1,11 @@
 import { AnyBlock } from "@slack/types";
 import { recentDeploysActionID } from "./recentDeploys";
 import { helpFlareChannel } from "./help";
+import { flareRolesActionID } from "./flareRoles";
+import { flareFollowupsActionID } from "./flareFollowups";
+import { whatsAFlareActionID } from "./whatsAFlare";
+import { howToPageActionID } from "./howToPage";
+import { debugging101ActionID } from "./debugging101";
 
 const introMessage = (
   issueKey: string,
@@ -41,15 +46,15 @@ const introMessage = (
         },
         action_id: recentDeploysActionID,
       },
-      {
-        type: "button",
-        text: {
-          type: "plain_text",
-          text: "Recent Critical Alerts",
-          emoji: true,
-        },
-        value: "click_me_123",
-      },
+      // {
+      //   type: "button",
+      //   text: {
+      //     type: "plain_text",
+      //     text: "Recent Critical Alerts",
+      //     emoji: true,
+      //   },
+      //   value: "click_me_123",
+      // },
     ],
   },
   {
@@ -62,33 +67,33 @@ const introMessage = (
   {
     type: "actions",
     elements: [
-      {
-        type: "button",
-        text: {
-          type: "plain_text",
-          text: "Log Queries",
-          emoji: true,
-        },
-        value: "click_me_123",
-      },
-      {
-        type: "button",
-        text: {
-          type: "plain_text",
-          text: "Metrics Dashboard",
-          emoji: true,
-        },
-        value: "click_me_123",
-      },
-      {
-        type: "button",
-        text: {
-          type: "plain_text",
-          text: "ark cheatsheet",
-          emoji: true,
-        },
-        value: "click_me_123",
-      },
+      // {
+      //   type: "button",
+      //   text: {
+      //     type: "plain_text",
+      //     text: "Log Queries",
+      //     emoji: true,
+      //   },
+      //   value: "click_me_123",
+      // },
+      // {
+      //   type: "button",
+      //   text: {
+      //     type: "plain_text",
+      //     text: "Metrics Dashboard",
+      //     emoji: true,
+      //   },
+      //   value: "click_me_123",
+      // },
+      // {
+      //   type: "button",
+      //   text: {
+      //     type: "plain_text",
+      //     text: "ark cheatsheet",
+      //     emoji: true,
+      //   },
+      //   value: "click_me_123",
+      // },
       {
         type: "button",
         text: {
@@ -96,7 +101,7 @@ const introMessage = (
           text: "how to page",
           emoji: true,
         },
-        value: "click_me_123",
+        action_id: howToPageActionID,
       },
       {
         type: "button",
@@ -105,7 +110,7 @@ const introMessage = (
           text: "debugging 101",
           emoji: true,
         },
-        value: "click_me_123",
+        action_id: debugging101ActionID,
       },
     ],
   },
@@ -123,19 +128,28 @@ const introMessage = (
         type: "button",
         text: {
           type: "plain_text",
-          text: "Flare Investigation Steps",
+          text: "What is a flare?",
           emoji: true,
         },
-        value: "click_me_123",
+        action_id: whatsAFlareActionID,
       },
       {
         type: "button",
         text: {
           type: "plain_text",
-          text: "Flare Roles Definition",
+          text: "Flare Roles",
           emoji: true,
         },
-        value: "click_me_123",
+        action_id: flareRolesActionID,
+      },
+      {
+        type: "button",
+        text: {
+          type: "plain_text",
+          text: "Flare Followups",
+          emoji: true,
+        },
+        action_id: flareFollowupsActionID,
       },
     ],
   },

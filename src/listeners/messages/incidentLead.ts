@@ -1,6 +1,7 @@
 import { AllMiddlewareArgs, SlackEventMiddlewareArgs } from "@slack/bolt";
 import { Version3Client } from "jira.js";
 import config from "../../lib/config";
+import { setListenerMatch } from "../../lib/listenerMatch";
 
 const incidentLeadRegex =
   /^(?:incident lead\b|.*\bi(?:'m| am)(?: the)? incident lead)|^\S+\s+incident lead$/i;
@@ -11,6 +12,7 @@ async function incidentLead({
   say,
   context,
 }: AllMiddlewareArgs & SlackEventMiddlewareArgs<"message">) {
+  setListenerMatch(context);
   const jiraClient = context.clients.jiraClient as Version3Client;
   const channelId = context.channel.id;
 
