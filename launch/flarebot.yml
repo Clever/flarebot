@@ -29,6 +29,6 @@ pod_config:
   group: us-west-2
 deploy_config:
   canaryInProd: false
+  # We only deploy to production as requests are loadbalanced between dev and local which makes it hard to test.
   autoDeployEnvs:
-  - clever-dev
   - production
