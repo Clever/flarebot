@@ -6,6 +6,7 @@ import { flareFollowupsActionID } from "./flareFollowups";
 import { whatsAFlareActionID } from "./whatsAFlare";
 import { howToPageActionID } from "./howToPage";
 import { debugging101ActionID } from "./debugging101";
+import { recentCriticalAlertsActionID } from "./recentCriticalAlerts";
 
 const introMessage = (
   issueKey: string,
@@ -46,15 +47,15 @@ const introMessage = (
         },
         action_id: recentDeploysActionID,
       },
-      // {
-      //   type: "button",
-      //   text: {
-      //     type: "plain_text",
-      //     text: "Recent Critical Alerts",
-      //     emoji: true,
-      //   },
-      //   value: "click_me_123",
-      // },
+      {
+        type: "button",
+        text: {
+          type: "plain_text",
+          text: "Recent Critical Alerts",
+          emoji: true,
+        },
+        action_id: recentCriticalAlertsActionID,
+      },
     ],
   },
   {

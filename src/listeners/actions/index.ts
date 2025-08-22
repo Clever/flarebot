@@ -11,6 +11,8 @@ import { whatsAFlare } from "./whatsAFlare";
 import { flareFollowups } from "./flareFollowups";
 import { debugging101ActionID } from "../../lib/debugging101";
 import { debugging101 } from "./debugging101";
+import { recentCriticalAlertsActionID } from "../../lib/recentCriticalAlerts";
+import { recentCriticalAlerts } from "./recentCriticalAlerts";
 
 const register = (app: App) => {
   app.action(recentDeploysActionID, recentDeploys);
@@ -19,6 +21,7 @@ const register = (app: App) => {
   app.action(howToPageActionID, howToPage);
   app.action(whatsAFlareActionID, whatsAFlare);
   app.action(debugging101ActionID, debugging101);
+  app.action(recentCriticalAlertsActionID, recentCriticalAlerts);
 };
 
 export default { register };
