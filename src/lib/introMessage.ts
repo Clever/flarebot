@@ -7,6 +7,7 @@ import { whatsAFlareActionID } from "./whatsAFlare";
 import { howToPageActionID } from "./howToPage";
 import { debugging101ActionID } from "./debugging101";
 import { recentCriticalAlertsActionID } from "./recentCriticalAlerts";
+import { openAlertsActionID } from "./openAlerts";
 
 const introMessage = (
   issueKey: string,
@@ -55,6 +56,15 @@ const introMessage = (
           emoji: true,
         },
         action_id: recentCriticalAlertsActionID,
+      },
+      {
+        type: "button",
+        text: {
+          type: "plain_text",
+          text: "Open Alerts",
+          emoji: true,
+        },
+        action_id: openAlertsActionID,
       },
     ],
   },

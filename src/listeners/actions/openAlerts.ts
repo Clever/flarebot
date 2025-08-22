@@ -1,8 +1,8 @@
 import { AllMiddlewareArgs, SlackActionMiddlewareArgs } from "@slack/bolt";
 import { BlockAction } from "@slack/bolt/dist/types/actions";
-import { errorModalView, recentCriticalAlertsModalView } from "../../lib/recentCriticalAlerts";
+import { errorModalView, openAlertsModalView } from "../../lib/openAlerts";
 
-const recentCriticalAlerts = async ({
+const openAlerts = async ({
   client,
   body,
   ack,
@@ -12,10 +12,10 @@ const recentCriticalAlerts = async ({
 
   let viewID = "";
   try {
-    // trigger_id is only valid for 3 seconds so open the modal immediately and then later fetch the catapult api for the recent deploys
+    // trigger_id is only valid for 3 seconds so open the modal immediately and then later fetch the pagerduty api for the open incidents
     const view = await client.views.open({
       trigger_id: body.trigger_id,
-      view: recentCriticalAlertsModalView(),
+      view: openAlertsModalView(),
     });
     viewID = view.view?.id ?? "";
   } catch (error) {
@@ -26,14 +26,15 @@ const recentCriticalAlerts = async ({
     const pagerDutyClient = context.clients.pagerDutyClient;
     const data = await pagerDutyClient.get("/incidents", {
       queryParameters: {
-        limit: 30,
+        limit: 50,
         sort_by: "created_at:desc",
         time_zone: "US/Pacific",
+        "statuses[]": ["acknowledged", "triggered"],
       },
     });
     if (data.response.status !== 200) {
       throw new Error(
-        "Error getting recent critical alerts: " +
+        "Error getting open alerts: " +
           data.response.status +
           " - " +
           data.response.statusText +
@@ -48,7 +49,7 @@ const recentCriticalAlerts = async ({
 
     await client.views.update({
       view_id: viewID,
-      view: recentCriticalAlertsModalView(data.resource),
+      view: openAlertsModalView(data.resource),
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.toString() : "Unknown error";
@@ -60,4 +61,4 @@ const recentCriticalAlerts = async ({
   }
 };
 
-export { recentCriticalAlerts };
+export { openAlerts };

@@ -15,7 +15,7 @@ const baseBlocks: KnownBlock[] = [
     elements: [
       {
         type: "mrkdwn",
-        text: "<https://getclever.pagerduty.com/incidents|PagerDuty incidents>",
+        text: "<https://getclever.pagerduty.com/incidents|View all alerts in PagerDuty>",
       },
     ],
   },
@@ -38,13 +38,6 @@ const recentCriticalAlertsModalView = (alerts?: any[]): ModalView => {
   } else {
     /* eslint-disable-next-line  @typescript-eslint/no-explicit-any */
     alerts.forEach((alert: any) => {
-      console.log(alert.title);
-      console.log(alert.created_at);
-      console.log(alert.updated_at);
-      console.log(alert.status);
-      console.log(alert.service.summary);
-      console.log(alert.html_url);
-      console.log(`<${alert.html_url}|${alert.title.trim()}>`);
       blocks.push({
         type: "divider",
       });

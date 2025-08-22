@@ -13,6 +13,8 @@ import { debugging101ActionID } from "../../lib/debugging101";
 import { debugging101 } from "./debugging101";
 import { recentCriticalAlertsActionID } from "../../lib/recentCriticalAlerts";
 import { recentCriticalAlerts } from "./recentCriticalAlerts";
+import { openAlertsActionID } from "../../lib/openAlerts";
+import { openAlerts } from "./openAlerts";
 
 const register = (app: App) => {
   app.action(recentDeploysActionID, recentDeploys);
@@ -22,6 +24,7 @@ const register = (app: App) => {
   app.action(whatsAFlareActionID, whatsAFlare);
   app.action(debugging101ActionID, debugging101);
   app.action(recentCriticalAlertsActionID, recentCriticalAlerts);
+  app.action(openAlertsActionID, openAlerts);
 };
 
 export default { register };
