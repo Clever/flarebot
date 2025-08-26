@@ -48,17 +48,15 @@ const recentDeploysModalView = (deployments?: Catapult.Models.DeploymentV2[]): M
         },
         fields: [
           {
-            type: "plain_text",
+            type: "mrkdwn",
             text: deployment.createdAt
               ? new Date(deployment.createdAt).toLocaleString("en-US", { timeZone: "US/Pacific" }) +
                 " PT"
               : "unknown",
-            emoji: true,
           },
           {
-            type: "plain_text",
+            type: "mrkdwn",
             text: deployment.owner?.replace("via dapple", "") || "unknown",
-            emoji: true,
           },
           {
             type: "mrkdwn",
