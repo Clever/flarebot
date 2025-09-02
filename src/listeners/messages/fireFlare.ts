@@ -242,7 +242,7 @@ async function fireFlare({
     audience = `<@${context.user.id}>`;
   }
   await say({
-    text: `${audience}: Flare fired. Please visit <#${flareChannelId}>`,
+    text: `${audience}: Flare fired. Please visit <#${flareChannelId}> -- ${title}`,
   });
 }
 
