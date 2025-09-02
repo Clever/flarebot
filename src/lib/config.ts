@@ -18,6 +18,7 @@ const config = {
   GOOGLE_SLACK_HISTORY_DOC_ID: getEnvVar("GOOGLE_SLACK_HISTORY_DOC_ID"),
 
   USERS_TO_INVITE: getEnvVar("USERS_TO_INVITE"),
+  PAGERDUTY_API_KEY: getEnvVar("PAGERDUTY_API_KEY"),
 };
 
 export default config;
