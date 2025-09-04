@@ -19,7 +19,7 @@ const introMessage = (
     type: "section",
     text: {
       type: "mrkdwn",
-      text: "Thank you for firing a flare! I am here to help you manage this flare and help solve it as soon as possible. This message is pinned so you can always access it easily from the top of the channel.",
+      text: "Thank you for firing a flare! I am here to help you manage this flare and help solve it as soon as possible. This message is pinned so you can always access it easily from the top of the channel. To get started you can reference <https://app.getguru.com/card/TkXnd6ac/Engineering-Flare-Resources| Engineering Flare Resources> which is a comprehensive list of links (sample log queries, metrics dashboards, oncall guides, etc.) to help you debug this flare faster.",
     },
   },
   {
@@ -78,33 +78,6 @@ const introMessage = (
   {
     type: "actions",
     elements: [
-      // {
-      //   type: "button",
-      //   text: {
-      //     type: "plain_text",
-      //     text: "Log Queries",
-      //     emoji: true,
-      //   },
-      //   value: "click_me_123",
-      // },
-      // {
-      //   type: "button",
-      //   text: {
-      //     type: "plain_text",
-      //     text: "Metrics Dashboard",
-      //     emoji: true,
-      //   },
-      //   value: "click_me_123",
-      // },
-      // {
-      //   type: "button",
-      //   text: {
-      //     type: "plain_text",
-      //     text: "ark cheatsheet",
-      //     emoji: true,
-      //   },
-      //   value: "click_me_123",
-      // },
       {
         type: "button",
         text: {
