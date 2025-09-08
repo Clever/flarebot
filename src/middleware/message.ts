@@ -34,7 +34,7 @@ const messageMiddleware = async ({
   }
 
   // flarebot only cares about messages that mention the bot.
-  if (payload.text && !payload.text.includes(`<@${context.botUserId}>`)) {
+  if (!payload.text || !payload.text.includes(`<@${context.botUserId}>`)) {
     return;
   }
 
