@@ -2,7 +2,7 @@ import { ModalView } from "@slack/types";
 
 const debugging101ActionID = "debugging101";
 
-const debugging101ModalView = (): ModalView => {
+const debugging101ModalView = (fileId: string): ModalView => {
   return {
     type: "modal",
     title: {
@@ -27,7 +27,7 @@ const debugging101ModalView = (): ModalView => {
       {
         type: "image",
         slack_file: {
-          id: "F0990KPQFRA", // Hard code this for now but we should look it up from slack based on file name
+          id: fileId,
         },
         alt_text: "Debuging 101",
       },

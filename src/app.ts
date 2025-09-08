@@ -6,6 +6,7 @@ import listeners from "./listeners";
 import clients from "./clients";
 import { UsersCache } from "./lib/usersCache";
 import { ChannelsCache } from "./lib/channelsCache";
+import { uploadFiles } from "./lib/uploadFiles";
 
 const logger = new kayvee.logger("flarebot");
 const usersCache = new UsersCache();
@@ -50,4 +51,17 @@ listeners.register(app);
 (async () => {
   await app.start();
   app.logger.info("⚡️ Bolt app is running!");
+})();
+
+// background tasks
+(async () => {
+  while (true) {
+    try {
+      const self = await app.client.auth.test();
+      await uploadFiles(app.client, self.user_id ?? "");
+    } catch (error) {
+      logger.errorD("upload-files-error", { error: error });
+    }
+    await new Promise((resolve) => setTimeout(resolve, 24 * 60 * 60 * 1000));
+  }
 })();

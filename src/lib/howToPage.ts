@@ -2,7 +2,7 @@ import { ModalView } from "@slack/types";
 
 const howToPageActionID = "how_to_page";
 
-const howToPageModalView = (): ModalView => {
+const howToPageModalView = (fileId: string): ModalView => {
   return {
     type: "modal",
     title: {
@@ -35,7 +35,7 @@ You can also page a specific person by clicking "Add details" and then searching
       {
         type: "image",
         slack_file: {
-          id: "F098JQQE9N3", // Hard code this for now but we should look it up from slack based on file name F0990KPQFRA
+          id: fileId,
         },
         alt_text: "/pd trigger",
       },
