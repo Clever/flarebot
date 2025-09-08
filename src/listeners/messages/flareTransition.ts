@@ -49,9 +49,11 @@ async function flareTransition({
 
   let responseText = "";
   let flareChannelText = "";
+  let mitigated = false;
   if (transition === "mitigated" || transition === "mitigate") {
     responseText = "The Flare was mitigated and there was much rejoicing throughout the land.";
     flareChannelText = `<#${channelId}> has been mitigated`;
+    mitigated = true;
   } else if (transition === "not a flare" || transition === "not flare") {
     responseText = "The Flare was not a Flare and there was much rejoicing throughout the land.";
     flareChannelText = `turns out <#${channelId}> is not a Flare`;
@@ -68,6 +70,36 @@ async function flareTransition({
     channel: config.FLARES_CHANNEL_ID,
     text: flareChannelText,
   });
+
+  const followupMessage = `can you please <https://clever.atlassian.net/wiki/spaces/ENG/pages/108210465/Flare+Followups#Signing-up-for-flare-followup|sign up> for followup for tomorrow? Fill out the <https://clever.atlassian.net/browse/${jiraTicket}| jira ticket> to capture what we know, following instructions <https://clever.atlassian.net/wiki/spaces/ENG/pages/108210465/Flare+Followups#Updating-the-flare-ticket|here>.`;
+
+  if (mitigated) {
+    const mitigationTime = new Date(parseInt(message.ts) * 1000);
+    const day = mitigationTime.getUTCDay();
+    const hour = mitigationTime.getUTCHours();
+
+    if (day == 4 && hour >= 15) {
+      // respond immediately in thread for mitigation between thursday 3 pm UTC and 11:59 pm UTC. (i.e approximately US business hours)
+      await client.chat.postMessage({
+        channel: channelId,
+        thread_ts: message.ts,
+        text: `<@${context.user.id}> ` + followupMessage,
+      });
+    } else {
+      // Schedule a message for Thursday 3 pm UTC
+      const nextThursday8am = new Date(mitigationTime);
+      nextThursday8am.setUTCDate(
+        nextThursday8am.getUTCDate() + ((4 - nextThursday8am.getUTCDay() + 7) % 7),
+      );
+      nextThursday8am.setHours(15, 0, 0, 0);
+
+      await client.chat.scheduleMessage({
+        channel: channelId,
+        post_at: nextThursday8am.getTime() / 1000,
+        text: `<@${context.user.id}> if you haven't already, ` + followupMessage,
+      });
+    }
+  }
 }
 
 function extractFlareTransition(text: string) {
