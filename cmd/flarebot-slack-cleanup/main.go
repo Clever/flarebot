@@ -34,11 +34,12 @@ type Handler struct {
 	jiraClient  *jira.JiraServer
 }
 
+// Constants for the handler
 const (
-	DEFAULT_PAGE_SIZE      = 200
-	ARCHIVED_LABEL         = "archived"
-	DEFAULT_RETRY_ATTEMPTS = 3
-	DEFAULT_RETRY_DELAY    = 1 * time.Second
+	DefaultPageSize      = 200
+	ArchivedLabel        = "archived"
+	DefaultRetryAttempts = 3
+	DefaultRetryDelay    = 1 * time.Second
 )
 
 // Handle is invoked by the Lambda runtime with the contents of the function input.
@@ -55,14 +56,14 @@ func (h Handler) Handle(ctx context.Context) error {
 	for {
 		input := &slk.GetConversationsParameters{
 			ExcludeArchived: "true",
-			Limit:           DEFAULT_PAGE_SIZE,
+			Limit:           DefaultPageSize,
 		}
 
 		if cursor != "" {
 			input.Cursor = cursor
 		}
 
-		response, err := retrySlack(ctx, DEFAULT_RETRY_ATTEMPTS, DEFAULT_RETRY_DELAY, func() (interface{}, error) {
+		response, err := retrySlack(ctx, DefaultRetryAttempts, DefaultRetryDelay, func() (interface{}, error) {
 			channels, nextCursor, err := h.slackClient.GetConversations(input)
 			if err != nil {
 				return nil, err
@@ -104,8 +105,8 @@ func (h Handler) Handle(ctx context.Context) error {
 	return nil
 }
 
-func (h Handler) CleanupSlackChannel(channel slk.Channel) error {
-	_, err := retrySlack(context.Background(), DEFAULT_RETRY_ATTEMPTS, DEFAULT_RETRY_DELAY, func() (interface{}, error) {
+func (h Handler) cleanupSlackChannel(channel slk.Channel) error {
+	_, err := retrySlack(context.Background(), DefaultRetryAttempts, DefaultRetryDelay, func() (interface{}, error) {
 		err := h.slackClient.ArchiveConversation(channel.ID)
 		return nil, err
 	})
@@ -116,7 +117,7 @@ func (h Handler) CleanupSlackChannel(channel slk.Channel) error {
 	if err != nil {
 		return err
 	}
-	err = h.jiraClient.SetLabel(ticket, ARCHIVED_LABEL)
+	err = h.jiraClient.SetLabel(ticket, ArchivedLabel)
 	if err != nil {
 		return err
 	}
@@ -144,7 +145,7 @@ func retrySlack(ctx context.Context, attempts int, sleep time.Duration, fn func(
 			return res, nil
 		}
 
-		var te slk.RateLimitedError
+		var te *slk.RateLimitedError
 		if errors.As(err, &te) {
 			logger.FromContext(ctx).InfoD("ratelimit-error", logger.M{"error": err.Error()})
 			time.Sleep(te.RetryAfter)
