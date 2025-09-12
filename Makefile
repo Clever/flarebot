@@ -26,6 +26,7 @@ build:
 	go build -o bin/jira-cli github.com/Clever/flarebot/jira/testcmd
 	go build -o bin/slack-cli github.com/Clever/flarebot/slack/testcmd
 	go build -o bin/$(EXECUTABLE) $(PKG)
+	$(call lambda-build-go,./cmd/flarebot-slack-cleanup,flarebot)
 
 
 # for later, when I want to go strict
