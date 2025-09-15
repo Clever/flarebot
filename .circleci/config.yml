@@ -91,6 +91,7 @@ jobs:
   build-lambda:
     executor: common-executor
     steps:
+    - checkout
     - clone-ci-scripts
     - run: APP_NAME=flarebot-slack-cleanup make build
     - persist_to_workspace:
