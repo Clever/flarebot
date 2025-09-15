@@ -87,6 +87,22 @@ jobs:
     steps:
       - clone-ci-scripts
       - run: if [ "${CIRCLE_BRANCH}" == "master" ]; then ../ci-scripts/circleci/dapple-deploy $DAPPLE_URL $DAPPLE_USER $DAPPLE_PASS $APP_NAME; fi;
+  
+  build-lambda:
+    executor: common-executor
+    steps:
+    - clone-ci-scripts
+    - run: APP_NAME=flarebot-slack-cleanup make build
+    - persist_to_workspace:
+        root: ~/Clever
+        paths: ["."]
+  
+  publish-lambda:
+    executor: common-executor
+    steps:
+    - attach_workspace:
+        at: ~/Clever
+    - run: ../ci-scripts/circleci/catapult-publish-lambda flarebot-slack-cleanup
 
 workflows:
   version: 2.1
@@ -106,3 +122,9 @@ workflows:
           requires:
             - unit-test
             - publish
+      - build-lambda
+      - publish-lambda:
+          context:
+          - aws-lambda-private
+          requires:
+          - build-lambda
