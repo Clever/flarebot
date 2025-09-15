@@ -19,6 +19,7 @@ executors:
     environment:
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
+      MASTER_COMPARE: master...<<pipeline.git.branch>>
 
 commands:
   clone-ci-scripts:
