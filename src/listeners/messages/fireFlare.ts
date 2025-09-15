@@ -169,20 +169,6 @@ async function fireFlare({
     context.logger.errorD("google-drive-error", { error: error });
   }
 
-  try {
-    await jiraClient.issues.editIssue({
-      issueIdOrKey: issueKey,
-      fields: {
-        description: jiraDescription(flareDocID, slackHistoryDocID),
-      },
-    });
-  } catch (error) {
-    await say({
-      text: "JIRA ticket created but couldn't set the description. Continuing anyway...",
-    });
-    context.logger.errorD("jira-description-error", { error: error });
-  }
-
   let flareChannelId = "";
   try {
     const flareChannel = await client.conversations.create({
@@ -195,6 +181,21 @@ async function fireFlare({
     throw new Error(
       `Error creating flare channel ${error}. If you need to make a new channel to discuss, please create a channel with name ${issueKey.toLowerCase()}.`,
     );
+  }
+
+  try {
+    await jiraClient.issues.editIssue({
+      issueIdOrKey: issueKey,
+      fields: {
+        description: jiraDescription(flareDocID, slackHistoryDocID),
+        [config.JIRA_SLACK_CHANNEL_FIELD_ID]: getFlareChannelUrl(flareChannelId),
+      },
+    });
+  } catch (error) {
+    await say({
+      text: "JIRA ticket created but couldn't set the description. Continuing anyway...",
+    });
+    context.logger.errorD("jira-description-error", { error: error });
   }
 
   try {
@@ -268,6 +269,10 @@ function extractPriorityAndTitle(text: string) {
   const title = matches[3] ? matches[3].trim() : "";
   if (!title) return null;
   return { specialType, priority, title };
+}
+
+function getFlareChannelUrl(channelId: string) {
+  return `${config.SLACK_ORIGIN}/archives/${channelId}`;
 }
 
 export { fireFlare, fireAFlareRegex, extractPriorityAndTitle };

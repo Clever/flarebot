@@ -1,0 +1,41 @@
+run:
+  type: lambda
+  architecture: arm64
+resources:
+  max_mem: 0.25
+shepherds:
+- 'diana.martschenko@clever.com'
+env: 
+- FLARE_CHANNEL_PREFIX
+- JIRA_ORIGIN
+- JIRA_USERNAME
+- JIRA_PASSWORD
+- JIRA_PROJECT_ID
+- SLACK_BOT_TOKEN
+- CHANNEL_AGE_THRESHOLD
+- DRY_RUN
+dependencies:
+  - catapult
+team: 'eng-infra'
+deploy_config:
+  autoDeployEnvs:
+  - production
+  - clever-dev
+lambda:
+  Timeout: 300 # 5 minutes
+  NoVPC: false # if the lambda depends on internal services, set this to false
+  Events: {}
+  MaxConcurrent: 1 # maximum concurrent lambda executions
+pod_config:
+  group: us-west-2
+build:
+  artifact:
+    # The command to construct the artifact that will be bundled and deployed.
+    command: "make build"
+    # Files that should cause a deploy when changed.
+    dependencies:
+    - "*.go"
+    - "go.mod"
+    - "go.sum"
+    - "launch/flarebot-slack-cleanup.yml"
+    - "cmd/flarebot-slack-cleanup"

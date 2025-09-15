@@ -304,3 +304,14 @@ func (server *JiraServer) SetDescription(ticket *Ticket, description string) err
 	}
 	return server.DoRequest("PUT", editURL, request, nil)
 }
+
+func (server *JiraServer) SetLabel(ticket *Ticket, label string) error {
+	request := map[string]interface{}{
+		"update": &map[string]interface{}{
+			"labels": []map[string]interface{}{
+				{"add": label},
+			},
+		},
+	}
+	return server.UpdateTicket(ticket, request)
+}
