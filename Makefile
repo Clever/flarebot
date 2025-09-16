@@ -8,7 +8,7 @@ PKGS := $(shell go list ./... | grep -v /vendor)
 EXECUTABLE := flarebot
 LAMBDAS := $(shell [ -d "./cmd" ] && ls ./cmd/)
 _APP_NAME ?= $(APP_NAME)
-
+export PATH := $(PWD)/bin:$(PATH)
 TESTS=$(shell cd src/ && find . -name "*.test.ts")
 
 FORMATTED_FILES := $(shell find src/ -name "*.ts")
