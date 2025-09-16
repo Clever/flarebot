@@ -94,6 +94,7 @@ jobs:
     steps:
     - checkout
     - clone-ci-scripts
+    - run: make install_deps
     - run: APP_NAME=flarebot-slack-cleanup make build
     - persist_to_workspace:
         root: ~/Clever
