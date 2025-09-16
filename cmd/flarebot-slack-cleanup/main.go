@@ -22,7 +22,7 @@ import (
 )
 
 // generate launch config
-//go:generate sh -c "$PWD/../../bin/launch-gen -o launch.go -p main $PWD/../../launch/flarebot-slack-cleanup.yml"
+//go:generate sh -c "$GENERATE_PWD/bin/launch-gen -o launch.go -p main $GENERATE_PWD/launch/flarebot-slack-cleanup.yml"
 
 // generate kv config bytes for setting up log routing
 //

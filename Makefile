@@ -26,7 +26,7 @@ all: test build
 test: generate $(PKGS)
 
 generate: tool
-	go generate ./...
+	GENERATE_PWD=$(PWD) go generate ./...
 	go mod tidy
 
 $(LAMBDAS): generate
