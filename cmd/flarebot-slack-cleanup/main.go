@@ -5,12 +5,12 @@ import (
 	"errors"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	_ "embed"
 
-	"github.com/Clever/flarebot/internal"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -20,6 +20,9 @@ import (
 
 	slk "github.com/slack-go/slack"
 )
+
+// generate launch config
+//go:generate sh -c "$PWD/../../bin/launch-gen -o launch.go -p main $PWD/../../launch/flarebot-slack-cleanup.yml"
 
 // generate kv config bytes for setting up log routing
 //
@@ -40,19 +43,17 @@ type JiraClient interface {
 // Handler encapsulates the external dependencies of the lambda function.
 // The example here demonstrates the case where the handler logic involves communicating with S3.
 type Handler struct {
-	slackClient SlackClient
-	jiraClient  JiraClient
+	slackClient  SlackClient
+	jiraClient   JiraClient
+	launchConfig LaunchConfig
 }
 
 // Constants for the handler
 const (
-	DefaultPageSize           = 200
-	JiraArchivedLabel         = "archived"
-	DefaultRetryAttempts      = 3
-	DefaultRetryDelay         = 1 * time.Second
-	DefaultChannelAge         = 180
-	DefaultDryRun             = true
-	DefaultFlareChannelPrefix = "flaretest-"
+	defaultPageSize      = 200
+	jiraArchivedLabel    = "archived"
+	defaultRetryAttempts = 3
+	defaultRetryDelay    = 1 * time.Second
 )
 
 // Handle is invoked by the Lambda runtime with the contents of the function input.
@@ -63,23 +64,29 @@ func (h Handler) Handle(ctx context.Context) error {
 		logger.FromContext(ctx).AddContext("aws-request-id", lambdaContext.AwsRequestID)
 	}
 
-	flareChannelPrefix := internal.GetStringEnv("FLARE_CHANNEL_PREFIX", DefaultFlareChannelPrefix)
-	threshold := internal.GetIntEnv("CHANNEL_AGE_THRESHOLD", DefaultChannelAge)
-	dryRun := internal.GetBoolEnv("DRY_RUN", DefaultDryRun)
+	flareChannelPrefix := h.launchConfig.Env.FlareChannelPrefix
+	threshold, err := strconv.Atoi(h.launchConfig.Env.ChannelAgeThreshold)
+	if err != nil {
+		return err
+	}
+	dryRun, err := strconv.ParseBool(h.launchConfig.Env.DryRun)
+	if err != nil {
+		return err
+	}
 	logger.FromContext(ctx).InfoD("starting-cleanup", logger.M{"flareChannelPrefix": flareChannelPrefix, "threshold": threshold, "dryRun": dryRun})
 
 	var cursor string
 	for {
 		slkInput := &slk.GetConversationsParameters{
 			ExcludeArchived: "true",
-			Limit:           DefaultPageSize,
+			Limit:           defaultPageSize,
 		}
 
 		if cursor != "" {
 			slkInput.Cursor = cursor
 		}
 
-		response, err := retrySlack(ctx, DefaultRetryAttempts, DefaultRetryDelay, func() (interface{}, error) {
+		response, err := retrySlack(ctx, defaultRetryAttempts, defaultRetryDelay, func() (interface{}, error) {
 			channels, nextCursor, err := h.slackClient.GetConversations(slkInput)
 			if err != nil {
 				return nil, err
@@ -100,9 +107,9 @@ func (h Handler) Handle(ctx context.Context) error {
 
 		for _, channel := range conversations.Channels {
 			if (strings.HasPrefix(channel.Name, flareChannelPrefix)) && isOlderThanThreshold(int64(channel.Created), threshold) {
-				logger.FromContext(ctx).InfoD("archiving-channel", logger.M{"channel": channel.Name})
+				logger.FromContext(ctx).DebugD("archiving-channel", logger.M{"channel": channel.Name})
 				if !dryRun {
-					err = h.cleanupSlackChannel(channel)
+					err = h.cleanupSlackChannel(ctx, channel)
 					if err != nil {
 						logger.FromContext(ctx).ErrorD("error-archiving-channel", logger.M{"channelName": channel.Name, "channelID": channel.ID, "error": err.Error()})
 						continue
@@ -121,13 +128,13 @@ func (h Handler) Handle(ctx context.Context) error {
 	return nil
 }
 
-func (h Handler) cleanupSlackChannel(channel slk.Channel) error {
-	_, err := retrySlack(context.Background(), DefaultRetryAttempts, DefaultRetryDelay, func() (interface{}, error) {
+func (h Handler) cleanupSlackChannel(ctx context.Context, channel slk.Channel) error {
+	_, err := retrySlack(ctx, defaultRetryAttempts, defaultRetryDelay, func() (interface{}, error) {
 		err := h.slackClient.ArchiveConversation(channel.ID)
 
 		if err != nil && err.Error() == "not_in_channel" {
-			logger.FromContext(context.Background()).InfoD("joining-channel", logger.M{"channel": channel.Name})
-			_, joinErr := retrySlack(context.Background(), DefaultRetryAttempts, DefaultRetryDelay, func() (interface{}, error) {
+			logger.FromContext(ctx).DebugD("joining-channel", logger.M{"channel": channel.Name})
+			_, joinErr := retrySlack(ctx, defaultRetryAttempts, defaultRetryDelay, func() (interface{}, error) {
 				_, _, _, joinErr := h.slackClient.JoinConversation(channel.ID)
 				return nil, joinErr
 			})
@@ -147,7 +154,7 @@ func (h Handler) cleanupSlackChannel(channel slk.Channel) error {
 		return err
 	}
 
-	err = h.jiraClient.SetLabel(ticket, JiraArchivedLabel)
+	err = h.jiraClient.SetLabel(ticket, jiraArchivedLabel)
 	if err != nil {
 		return err
 	}
@@ -190,38 +197,19 @@ func main() {
 	}
 	lg := logger.FromContext(ctx)
 
-	origin, ok := os.LookupEnv("JIRA_ORIGIN")
-	if !ok {
-		log.Fatalf("JIRA_ORIGIN is not set")
-	}
-	username, ok := os.LookupEnv("JIRA_USERNAME")
-	if !ok {
-		log.Fatalf("JIRA_USERNAME is not set")
-	}
-	password, ok := os.LookupEnv("JIRA_PASSWORD")
-	if !ok {
-		log.Fatalf("JIRA_PASSWORD is not set")
-	}
-	projectID, ok := os.LookupEnv("JIRA_PROJECT_ID")
-	if !ok {
-		log.Fatalf("JIRA_PROJECT_ID is not set")
-	}
-	token, ok := os.LookupEnv("SLACK_BOT_TOKEN")
-	if !ok {
-		log.Fatalf("SLACK_BOT_TOKEN is not set")
-	}
-
-	slackClient := slk.New(token)
+	launchConfig := InitLaunchConfig(nil)
+	slackClient := slk.New(launchConfig.Env.SlackBotToken)
 	jiraServer := jira.JiraServer{
-		Origin:    origin,
-		Username:  username,
-		Password:  password,
-		ProjectID: projectID,
+		Origin:    launchConfig.Env.JiraOrigin,
+		Username:  launchConfig.Env.JiraUsername,
+		Password:  launchConfig.Env.JiraPassword,
+		ProjectID: launchConfig.Env.JiraProjectID,
 	}
 
 	handler := Handler{
-		slackClient: slackClient,
-		jiraClient:  &jiraServer,
+		slackClient:  slackClient,
+		jiraClient:   &jiraServer,
+		launchConfig: launchConfig,
 	}
 
 	if os.Getenv("IS_LOCAL") == "true" {

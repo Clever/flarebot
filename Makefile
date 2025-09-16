@@ -45,6 +45,7 @@ $(PKGS): golang-test-all-deps
 	$(call golang-test-all,$@)
 
 install_deps: vendor tool
+	go build -o bin/launch-gen -mod=vendor ./vendor/github.com/Clever/launch-gen
 
 format:
 	@echo "Formatting modified files..."

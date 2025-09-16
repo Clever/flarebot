@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -42,6 +41,7 @@ func TestHandle(t *testing.T) {
 		},
 	}
 	channel.Conversation.Created = slk.JSONTime(1234567890)
+	launchConfig := LaunchConfig{Env: Environment{ChannelAgeThreshold: "180", FlareChannelPrefix: "flaretest-", DryRun: "false"}}
 
 	tests := []handleTest{
 		{
@@ -120,8 +120,8 @@ func TestHandle(t *testing.T) {
 			mockSlackClient := NewMockSlackClient(mockController)
 			mockJiraClient := NewMockJiraClient(mockController)
 			test.mockExpectations(mockSlackClient, mockJiraClient)
-			os.Setenv("DRY_RUN", strconv.FormatBool(test.input.testConfig.DryRun))
-			err := Handler{slackClient: mockSlackClient, jiraClient: mockJiraClient}.Handle(test.input.ctx)
+			launchConfig.Env.DryRun = strconv.FormatBool(test.input.testConfig.DryRun)
+			err := Handler{slackClient: mockSlackClient, jiraClient: mockJiraClient, launchConfig: launchConfig}.Handle(test.input.ctx)
 			assert.Equal(t, test.output.err, err)
 		})
 	}
