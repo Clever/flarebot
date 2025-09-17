@@ -7,6 +7,7 @@ import { SectionBlock } from "@slack/types";
 import { Version3Client } from "jira.js";
 import { drive_v3 } from "@googleapis/drive";
 import { setListenerMatch } from "../../lib/listenerMatch";
+import { createFlareDoc } from "../../lib/googleDocs";
 
 const specialTypeRetroactive = "retroactive";
 
@@ -91,77 +92,13 @@ async function fireFlare({
 
   let flareDocID = "";
   let slackHistoryDocID = "";
-  // create a google doc for the flare using the template
   try {
-    let flaredocTitle = `${issueKey}: ${title}`;
-    if (specialType) {
-      flaredocTitle = `${issueKey}: ${title} (${specialType})`;
-    }
-
-    let slackHistoryDocTitle = `${issueKey}: ${title} (Slack History)`;
-    if (specialType) {
-      slackHistoryDocTitle = `${issueKey}: ${title} (${specialType}) (Slack History)`;
-    }
-
-    const flaredoc = await googleDriveClient.files.copy({
-      requestBody: {
-        name: flaredocTitle,
+    await createFlareDoc(googleDriveClient, issueKey, title, specialType).then(
+      ({ docId, historyDocId }) => {
+        flareDocID = docId;
+        slackHistoryDocID = historyDocId;
       },
-      fileId: config.GOOGLE_TEMPLATE_DOC_ID,
-    });
-    flareDocID = flaredoc.data.id ?? "";
-
-    const slackHistoryDoc = await googleDriveClient.files.copy({
-      requestBody: {
-        name: slackHistoryDocTitle,
-      },
-      fileId: config.GOOGLE_SLACK_HISTORY_DOC_ID,
-    });
-    slackHistoryDocID = slackHistoryDoc.data.id ?? "";
-
-    await googleDriveClient.permissions.create({
-      fileId: flareDocID,
-      requestBody: {
-        role: "writer",
-        type: "domain",
-        domain: config.GOOGLE_DOMAIN,
-      },
-    });
-
-    await googleDriveClient.permissions.create({
-      fileId: slackHistoryDocID,
-      requestBody: {
-        role: "writer",
-        type: "domain",
-        domain: config.GOOGLE_DOMAIN,
-      },
-    });
-
-    const flaredocHTML = await googleDriveClient.files.export({
-      fileId: flareDocID,
-      mimeType: "text/html",
-    });
-
-    let html = flaredocHTML.data as string;
-
-    html = html.replace("[FLARE-KEY]", issueKey);
-    html = html.replace(
-      "[START-DATE]",
-      new Date().toLocaleString("en-US", { timeZone: "US/Pacific" }) + " PT",
     );
-    html = html.replace("[SUMMARY]", title);
-    html = html.replace(
-      "[HISTORY-DOC]",
-      `<a href="https://docs.google.com/spreadsheets/d/${slackHistoryDocID}">${slackHistoryDocTitle}</a>`,
-    );
-
-    await googleDriveClient.files.update({
-      fileId: flareDocID,
-      media: {
-        mimeType: "text/html",
-        body: html,
-      },
-    });
   } catch (error) {
     await say({
       text: "I'm having trouble connecting to google drive right now, so I can't make a flare doc for tracking. Continuing anyway...",

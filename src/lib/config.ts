@@ -19,6 +19,9 @@ const config = {
 
   USERS_TO_INVITE: getEnvVar("USERS_TO_INVITE"),
   PAGERDUTY_API_KEY: getEnvVar("PAGERDUTY_API_KEY"),
+
+  GOOGLE_FLARE_FOLDER_ID: getEnvVar("GOOGLE_FLARE_FOLDER_ID"),
+  GOOGLE_SHARED_DRIVE_ID: getEnvVar("GOOGLE_SHARED_DRIVE_ID"),
 };
 
 export default config;
