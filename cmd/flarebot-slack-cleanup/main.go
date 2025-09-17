@@ -48,6 +48,12 @@ type Handler struct {
 	launchConfig LaunchConfig
 }
 
+type FailedChannel struct {
+	Name  string
+	ID    string
+	Error string
+}
+
 // Constants for the handler
 const (
 	defaultPageSize      = 200
@@ -76,6 +82,7 @@ func (h Handler) Handle(ctx context.Context) error {
 	logger.FromContext(ctx).InfoD("starting-cleanup", logger.M{"flareChannelPrefix": flareChannelPrefix, "threshold": threshold, "dryRun": dryRun})
 
 	var cursor string
+	failedChannels := []FailedChannel{}
 	for {
 		slkInput := &slk.GetConversationsParameters{
 			ExcludeArchived: "true",
@@ -111,7 +118,7 @@ func (h Handler) Handle(ctx context.Context) error {
 				if !dryRun {
 					err = h.cleanupSlackChannel(ctx, channel)
 					if err != nil {
-						logger.FromContext(ctx).ErrorD("error-archiving-channel", logger.M{"channelName": channel.Name, "channelID": channel.ID, "error": err.Error()})
+						failedChannels = append(failedChannels, FailedChannel{Name: channel.Name, ID: channel.ID, Error: err.Error()})
 						continue
 					}
 				}
@@ -123,6 +130,10 @@ func (h Handler) Handle(ctx context.Context) error {
 		}
 
 		cursor = conversations.NextCursor
+	}
+
+	if len(failedChannels) > 0 {
+		logger.FromContext(ctx).ErrorD("error-archiving-channels", logger.M{"channels": failedChannels})
 	}
 
 	return nil

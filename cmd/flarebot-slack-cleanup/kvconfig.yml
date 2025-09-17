@@ -2,10 +2,10 @@
 routes:
   error-archiving-channel:
     matchers:
-      title: ["error-archiving-channel"]
+      title: ["error-archiving-channels"]
     output:
       type: "notifications"
       channel: "#eng-infra-alerts-minor"
       icon: ":broom:"
       user: "flarebot"
-      message: "Failed to archive channel. channelName=%{channelName} channelID=%{channelID} error=%{error}"
+      message: "Failed to archive channels. channels=%{channels}"
