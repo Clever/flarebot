@@ -61,6 +61,7 @@ The app requires the following environment variables (see `src/lib/config.ts`):
 - `SLACK_BOT_TOKEN` - Bot User OAuth Token
 - `SLACK_SIGNING_SECRET` - Signing Secret for request verification
 - `SLACK_APP_TOKEN` - App-level token for Socket Mode
+- `SLACK_ORIGIN` - Slack instance URL
 
 ### Channel Configuration
 - `FLARES_CHANNEL_ID` - Main flares channel ID
@@ -72,6 +73,7 @@ The app requires the following environment variables (see `src/lib/config.ts`):
 - `JIRA_USERNAME` - Jira username
 - `JIRA_PASSWORD` - Jira API token/password
 - `JIRA_PROJECT_ID` - Jira project ID for flares
+- `JIRA_SLACK_CHANNEL_FIELD_ID` - ID of the custom slack channel url field
 
 ### Google Configuration
 - `GOOGLE_FLAREBOT_SERVICE_ACCOUNT_CONF` - Service account JSON

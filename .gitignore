@@ -6,3 +6,7 @@ vendor/
 node_modules/
 dist/
 .cursor/
+
+# mocks
+mock_*.go
+**/mock.go

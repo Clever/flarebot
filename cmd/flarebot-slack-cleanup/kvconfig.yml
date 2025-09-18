@@ -1,0 +1,11 @@
+# see go/log-routing for explanation
+routes:
+  error-archiving-channel:
+    matchers:
+      title: ["error-archiving-channels"]
+    output:
+      type: "notifications"
+      channel: "#eng-infra-alerts-minor"
+      icon: ":broom:"
+      user: "flarebot"
+      message: "Failed to archive channels. channels=%{channels}"

@@ -1,11 +1,14 @@
 include golang.mk
+include lambda.mk
 .DEFAULT_GOAL := test # override default goal set in library makefile
 
 SHELL := /bin/bash
 PKG = github.com/Clever/flarebot
 PKGS := $(shell go list ./... | grep -v /vendor)
 EXECUTABLE := flarebot
-
+LAMBDAS := $(shell [ -d "./cmd" ] && ls ./cmd/)
+_APP_NAME ?= $(APP_NAME)
+export PATH := $(PWD)/bin:$(PATH)
 TESTS=$(shell cd src/ && find . -name "*.test.ts")
 
 FORMATTED_FILES := $(shell find src/ -name "*.ts")
@@ -20,13 +23,19 @@ ESLINT := ./node_modules/.bin/eslint
 
 all: test build
 
-test: $(PKGS)
+test: generate $(PKGS)
 
-build:
+generate: tool
+	GENERATE_PWD=$(PWD) go generate ./...
+	go mod tidy
+
+$(LAMBDAS): generate
+	$(call lambda-build-go,./cmd/$@,$@)
+
+build: $(LAMBDAS)
 	go build -o bin/jira-cli github.com/Clever/flarebot/jira/testcmd
 	go build -o bin/slack-cli github.com/Clever/flarebot/slack/testcmd
 	go build -o bin/$(EXECUTABLE) $(PKG)
-
 
 # for later, when I want to go strict
 #$(PKGS): golang-test-all-strict-deps
@@ -35,9 +44,8 @@ build:
 $(PKGS): golang-test-all-deps
 	$(call golang-test-all,$@)
 
-install_deps:
-	go mod vendor
-
+install_deps: vendor tool
+	go build -o bin/launch-gen -mod=vendor ./vendor/github.com/Clever/launch-gen
 
 format:
 	@echo "Formatting modified files..."
@@ -71,6 +79,17 @@ $(TESTS):
 build-ts:
 	./node_modules/.bin/tsc -p .
 
+run-ts: build-ts
+	node dist/app.js
+
+run-local:
+ifeq ($(_APP_NAME),flarebot)
+	make run-ts
+else
+	$(call golang-build,./cmd/$(_APP_NAME),$(_APP_NAME))
+	IS_LOCAL=true bin/$(_APP_NAME)
+endif
+
 
 # We generally want to use production catapult for testing since we don't run it in dev.
 # To test failure cases you can also set env var for secrets to "x" here.
@@ -82,5 +101,11 @@ ifeq ($(_IS_LOCAL), true)
 # export JIRA_PASSWORD=x
 endif
 
-run: build-ts
-	node dist/app.js
+run: run-local
+
+vendor: go.mod go.sum
+	go mod tidy
+	go mod vendor
+
+tool: vendor
+	go install tool
