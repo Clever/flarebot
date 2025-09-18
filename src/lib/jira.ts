@@ -4,6 +4,7 @@ async function doJiraTransition(
   jiraclient: Version3Client,
   ticket: string,
   transitionName: string,
+  assignee?: string,
 ) {
   const jiraIssue = await jiraclient.issues.getIssue({
     issueIdOrKey: ticket,
@@ -22,6 +23,15 @@ async function doJiraTransition(
     issueIdOrKey: ticket,
     transition: transition,
   });
+
+  if (assignee) {
+    await jiraclient.issues.editIssue({
+      issueIdOrKey: ticket,
+      fields: {
+        assignee: { id: assignee },
+      },
+    });
+  }
 }
 
 const jiraDescription = (flaredoc: string, slackHistoryDoc: string) => ({
