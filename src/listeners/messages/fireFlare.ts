@@ -62,6 +62,10 @@ async function fireFlare({
       query: context.user.profile.email,
     });
 
+    if (!jiraUser || jiraUser.length === 0) {
+      throw new Error("Could not find your JIRA user account");
+    }
+
     const newIssue = await jiraClient.issues.createIssue({
       fields: {
         summary: title,

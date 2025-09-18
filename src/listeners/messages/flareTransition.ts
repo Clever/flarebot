@@ -34,12 +34,20 @@ async function flareTransition({
   const channelId = context.channel.id;
 
   try {
+    const jiraUser = await jiraClient.userSearch.findUsers({
+      query: context.user.profile.email,
+    });
+
+    if (!jiraUser || jiraUser.length === 0) {
+      throw new Error("Could not find your JIRA user account");
+    }
+
     if (transition === "mitigated" || transition === "mitigate") {
-      await doJiraTransition(jiraClient, jiraTicket, "Mitigated");
+      await doJiraTransition(jiraClient, jiraTicket, "Mitigated", jiraUser[0].accountId);
     } else if (transition === "not a flare" || transition === "not flare") {
-      await doJiraTransition(jiraClient, jiraTicket, "NotAFlare");
+      await doJiraTransition(jiraClient, jiraTicket, "NotAFlare", jiraUser[0].accountId);
     } else if (transition === "unmitigated" || transition === "unmitigate") {
-      await doJiraTransition(jiraClient, jiraTicket, "In Progress");
+      await doJiraTransition(jiraClient, jiraTicket, "In Progress", jiraUser[0].accountId);
     }
   } catch (error) {
     throw new Error(
