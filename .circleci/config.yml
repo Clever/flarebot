@@ -20,6 +20,7 @@ executors:
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
       MASTER_COMPARE: master...<<pipeline.git.branch>>
+      PREVIOUS_PIPELINE_COMPARE: << pipeline.git.base_revision >>..<<pipeline.git.revision>>
 
 commands:
   clone-ci-scripts:
