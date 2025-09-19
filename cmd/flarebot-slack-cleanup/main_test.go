@@ -35,9 +35,10 @@ type handleTest struct {
 }
 
 func TestHandle(t *testing.T) {
+	jiraKeyId := "FLARETEST-123"
 	channel := slk.Channel{
 		GroupConversation: slk.GroupConversation{
-			Name: "flaretest-old-channel",
+			Name: "flaretest-123",
 		},
 	}
 	channel.Conversation.Created = slk.JSONTime(1234567890)
@@ -56,7 +57,7 @@ func TestHandle(t *testing.T) {
 			mockExpectations: func(slackClient *MockSlackClient, jiraClient *MockJiraClient) {
 				slackClient.EXPECT().GetConversations(gomock.Any()).Return([]slk.Channel{channel}, "", nil).Times(1)
 				slackClient.EXPECT().ArchiveConversation(channel.ID).Return(nil).Times(1)
-				jiraClient.EXPECT().GetTicketByKey("FLARETEST-OLD-CHANNEL").Return(nil, nil).Times(1)
+				jiraClient.EXPECT().GetTicketByKey(jiraKeyId).Return(nil, nil).Times(1)
 				jiraClient.EXPECT().SetLabel(gomock.Any(), "archived").Return(nil).Times(1)
 			},
 		},
@@ -88,7 +89,7 @@ func TestHandle(t *testing.T) {
 				slackClient.EXPECT().ArchiveConversation(channel.ID).Return(errors.New("not_in_channel")).Times(1)
 				slackClient.EXPECT().JoinConversation(channel.ID).Return(&channel, "", []string{}, nil).Times(1)
 				slackClient.EXPECT().ArchiveConversation(channel.ID).Return(nil).Times(1)
-				jiraClient.EXPECT().GetTicketByKey("FLARETEST-OLD-CHANNEL").Return(nil, nil).Times(1)
+				jiraClient.EXPECT().GetTicketByKey(jiraKeyId).Return(nil, nil).Times(1)
 				jiraClient.EXPECT().SetLabel(gomock.Any(), "archived").Return(nil).Times(1)
 			},
 		},
@@ -108,7 +109,7 @@ func TestHandle(t *testing.T) {
 				}
 				slackClient.EXPECT().ArchiveConversation(channel.ID).Return(rlErr).Times(1)
 				slackClient.EXPECT().ArchiveConversation(channel.ID).Return(nil).Times(1)
-				jiraClient.EXPECT().GetTicketByKey("FLARETEST-OLD-CHANNEL").Return(nil, nil).Times(1)
+				jiraClient.EXPECT().GetTicketByKey(jiraKeyId).Return(nil, nil).Times(1)
 				jiraClient.EXPECT().SetLabel(gomock.Any(), "archived").Return(nil).Times(1)
 			},
 		},

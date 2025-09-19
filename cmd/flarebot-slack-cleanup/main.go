@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -60,6 +61,7 @@ const (
 	jiraArchivedLabel    = "archived"
 	defaultRetryAttempts = 3
 	defaultRetryDelay    = 1 * time.Second
+	defaultPauseDuration = 3 * time.Second
 )
 
 // Handle is invoked by the Lambda runtime with the contents of the function input.
@@ -113,7 +115,7 @@ func (h Handler) Handle(ctx context.Context) error {
 		})
 
 		for _, channel := range conversations.Channels {
-			if (strings.HasPrefix(channel.Name, flareChannelPrefix)) && isOlderThanThreshold(int64(channel.Created), threshold) {
+			if isFlareChannel(channel.Name, flareChannelPrefix) && isOlderThanThreshold(int64(channel.Created), threshold) {
 				logger.FromContext(ctx).DebugD("archiving-channel", logger.M{"channel": channel.Name})
 				if !dryRun {
 					err = h.cleanupSlackChannel(ctx, channel)
@@ -121,6 +123,8 @@ func (h Handler) Handle(ctx context.Context) error {
 						failedChannels = append(failedChannels, FailedChannel{Name: channel.Name, ID: channel.ID, Error: err.Error()})
 						continue
 					}
+					// pause to avoid rate limiting
+					time.Sleep(defaultPauseDuration)
 				}
 			}
 		}
@@ -176,6 +180,15 @@ func isOlderThanThreshold(timestamp int64, threshold int) bool {
 	creationTime := time.Unix(timestamp, 0)
 	cutoffTime := time.Now().Add(-time.Duration(threshold) * 24 * time.Hour)
 	return creationTime.Before(cutoffTime)
+}
+
+func isFlareChannel(channelName, flareChannelPrefix string) bool {
+	pattern := "^" + regexp.QuoteMeta(flareChannelPrefix) + "\\d+$"
+	matched, err := regexp.MatchString(pattern, channelName)
+	if err != nil {
+		return false
+	}
+	return matched
 }
 
 func retrySlack(ctx context.Context, attempts int, sleep time.Duration, fn func() (interface{}, error)) (interface{}, error) {
