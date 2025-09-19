@@ -22,7 +22,7 @@ deploy_config:
   - production
   - clever-dev
 lambda:
-  Timeout: 300 # 5 minutes
+  Timeout: 900 # 15 minutes
   NoVPC: false # if the lambda depends on internal services, set this to false
   Events: {}
   MaxConcurrent: 1 # maximum concurrent lambda executions
