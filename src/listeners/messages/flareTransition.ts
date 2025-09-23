@@ -58,6 +58,7 @@ async function flareTransition({
   let responseText = "";
   let flareChannelText = "";
   let mitigated = false;
+  let unmitigated = false;
   if (transition === "mitigated" || transition === "mitigate") {
     responseText = "The Flare was mitigated and there was much rejoicing throughout the land.";
     flareChannelText = `<#${channelId}> has been mitigated`;
@@ -68,6 +69,7 @@ async function flareTransition({
   } else if (transition === "unmitigated" || transition === "unmitigate") {
     responseText = "UhOh! The Flare was unmitigated and the land is in chaos.";
     flareChannelText = `<!channel> <#${channelId}> has been unmitigated and is back in progress.`;
+    unmitigated = true;
   }
   await client.chat.postMessage({
     channel: channelId,
@@ -105,6 +107,16 @@ async function flareTransition({
         channel: channelId,
         post_at: nextThursday8am.getTime() / 1000,
         text: `<@${context.user.id}> if you haven't already, ` + followupMessage,
+      });
+    }
+  } else if (unmitigated) {
+    const msgList = await client.chat.scheduledMessages.list({
+      channel: channelId,
+    });
+    for (const msg of msgList.scheduled_messages ?? []) {
+      await client.chat.deleteScheduledMessage({
+        channel: channelId,
+        scheduled_message_id: msg.id ?? "",
       });
     }
   }
