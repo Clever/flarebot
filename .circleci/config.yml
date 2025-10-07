@@ -1,20 +1,9 @@
 version: 2.1
 
 executors:
-  # cleanup when old flarebot is removed
-  old-executor:
-    working_directory: ~/go/src/github.com/Clever/flarebot
-    docker:
-      - image: cimg/go:1.24
-    environment:
-      CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
-      CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
-      GOPRIVATE: github.com/Clever/*
-
   common-executor:
     working_directory: ~/Clever/flarebot
     docker:
-      # Use cimg/node:22.16 when we get rid of reference to go from makefile
       - image: cimg/go:1.24-node
     environment:
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
@@ -31,23 +20,6 @@ commands:
           command: cd .. && git clone --depth 1 -v https://github.com/Clever/ci-scripts.git && cd ci-scripts && git show --oneline -s
 
 jobs:
-  build-old-flarebot:
-    executor: old-executor
-    steps:
-      - clone-ci-scripts
-      - checkout
-      - run:
-          command: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
-          name: Set up CircleCI artifacts directories
-      - run:
-          command: git config --global "url.ssh://git@github.com/Clever".insteadOf "https://github.com/Clever"
-      - run:
-          name: Add github.com to known hosts
-          command: mkdir -p ~/.ssh && touch ~/.ssh/known_hosts && echo 'github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=' >> ~/.ssh/known_hosts
-      - run: make install_deps
-      - run: make build
-      - run: make test
-
   build:
     executor: common-executor
     steps:
@@ -59,6 +31,8 @@ jobs:
             mv .npmrc_docker .npmrc
       - run: npm ci
       - run: make build-ts
+      - run: make install_deps
+      - run: APP_NAME=flarebot-slack-cleanup make build
       - persist_to_workspace:
           root: ~/Clever
           paths: "."
@@ -72,6 +46,7 @@ jobs:
       - setup_remote_docker
       - run: ../ci-scripts/circleci/docker-publish $DOCKER_USER $DOCKER_PASS "$DOCKER_EMAIL" $DOCKER_ORG
       - run: ../ci-scripts/circleci/catapult-publish $CATAPULT_URL $CATAPULT_USER $CATAPULT_PASS flarebot
+      - run: ../ci-scripts/circleci/catapult-publish-lambda flarebot-slack-cleanup
 
   unit-test:
     executor: common-executor
@@ -83,36 +58,19 @@ jobs:
           command: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
       - run: make lint
       - run: make test-js
+      - run: make test
 
   deploy:
     executor: common-executor
     steps:
       - clone-ci-scripts
       - run: if [ "${CIRCLE_BRANCH}" == "master" ]; then ../ci-scripts/circleci/dapple-deploy $DAPPLE_URL $DAPPLE_USER $DAPPLE_PASS $APP_NAME; fi;
-  
-  build-lambda:
-    executor: common-executor
-    steps:
-    - checkout
-    - clone-ci-scripts
-    - run: make install_deps
-    - run: APP_NAME=flarebot-slack-cleanup make build
-    - persist_to_workspace:
-        root: ~/Clever
-        paths: ["."]
-  
-  publish-lambda:
-    executor: common-executor
-    steps:
-    - attach_workspace:
-        at: ~/Clever
-    - run: ../ci-scripts/circleci/catapult-publish-lambda flarebot-slack-cleanup
+      - run: if [ "${CIRCLE_BRANCH}" == "master" ]; then ../ci-scripts/circleci/dapple-deploy $DAPPLE_URL $DAPPLE_USER $DAPPLE_PASS flarebot-slack-cleanup; fi;
 
 workflows:
   version: 2.1
   build_test_publish_deploy:
     jobs:
-      - build-old-flarebot
       - build
       - unit-test:
           requires:
@@ -120,15 +78,10 @@ workflows:
       - publish:
           context:
             - aws-ecr-private
+            - aws-lambda-private
           requires:
             - build
       - deploy:
           requires:
             - unit-test
             - publish
-      - build-lambda
-      - publish-lambda:
-          context:
-          - aws-lambda-private
-          requires:
-          - build-lambda

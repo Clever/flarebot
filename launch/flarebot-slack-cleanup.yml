@@ -10,12 +10,10 @@ env:
 - JIRA_ORIGIN
 - JIRA_USERNAME
 - JIRA_PASSWORD
-- JIRA_PROJECT_ID
 - SLACK_BOT_TOKEN
 - CHANNEL_AGE_THRESHOLD
 - DRY_RUN
-dependencies:
-  - catapult
+dependencies: []
 team: 'eng-infra'
 deploy_config:
   autoDeployEnvs:

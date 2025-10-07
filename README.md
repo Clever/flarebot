@@ -1,6 +1,6 @@
 # FlareBot
 
-Slack bot that assists in the creation of FLARE support documents.
+Slack bot that assists in the creation of FLARE support documents and incident management.
 
 # Flarebot - Slack Bolt App Development Guide
 
@@ -8,7 +8,7 @@ This guide covers how to develop, edit, run, and debug the Flarebot Slack Bolt a
 
 ## Overview
 
-Flarebot is a Slack bot built with the Slack Bolt framework for controlling flares. It uses TypeScript for the Slack app logic and Go for additional services.
+Flarebot is a Slack bot built with the Slack Bolt framework for controlling flares and incident management. It uses TypeScript for the main Slack app logic and Go for the flarebot-slack-cleanup Lambda function.
 
 ## Prerequisites
 
@@ -18,6 +18,7 @@ Flarebot is a Slack bot built with the Slack Bolt framework for controlling flar
 - Slack App credentials (Bot Token, Signing Secret, App Token)
 - Jira credentials
 - Google API credentials
+- PagerDuty API key
 
 ## Project Structure
 
@@ -29,16 +30,20 @@ Flarebot is a Slack bot built with the Slack Bolt framework for controlling flar
 │   ├── lib/               # Utility libraries and configuration
 │   │   ├── config.ts      # Environment configuration
 │   │   ├── usersCache.ts  # Slack users caching
-│   │   └── channelsCache.ts # Slack channels caching
+│   │   ├── channelsCache.ts # Slack channels caching
+│   │   ├── jira.ts        # Jira integration utilities
+│   │   ├── googleDocs.ts  # Google Docs integration
+│   │   └── ...            # Other utility modules
 │   ├── listeners/         # Slack event listeners
 │   │   ├── actions/       # Interactive component actions
 │   │   └── messages/      # Message event handlers
 │   ├── middleware/        # Custom middleware
 │   └── types/             # TypeScript type definitions
 ├── dist/                  # Compiled JavaScript output
+├── cmd/                   # Go Lambda functions
+│   └── flarebot-slack-cleanup/ # Slack channel cleanup Lambda
 ├── jira/                  # Go Jira integration
-├── slack/                 # Go Slack utilities
-└── googledocs/           # Go Google Docs integration
+└── launch/                # Deployment configurations
 ```
 
 ## Installation
@@ -80,6 +85,11 @@ The app requires the following environment variables (see `src/lib/config.ts`):
 - `GOOGLE_DOMAIN` - Google Workspace domain
 - `GOOGLE_TEMPLATE_DOC_ID` - Template document ID
 - `GOOGLE_SLACK_HISTORY_DOC_ID` - Slack history spreadsheet ID
+- `GOOGLE_FLARE_FOLDER_ID` - Google Drive folder for flare documents
+- `GOOGLE_SHARED_DRIVE_ID` - Google Shared Drive ID
+
+### PagerDuty Configuration
+- `PAGERDUTY_API_KEY` - PagerDuty API key for alert integration
 
 ### Other Configuration
 - `USERS_TO_INVITE` - Comma-separated list of users to auto-invite
@@ -97,13 +107,23 @@ This compiles TypeScript files from `src/` to JavaScript in `dist/`.
 ### Running the App Locally
 
 ```bash
-make run
+ark start -l
 ```
 
 This will:
 1. Build the TypeScript code
 2. Start the Slack Bolt app with Socket Mode
 3. Connect to production Catapult service (when `_IS_LOCAL=true`)
+
+### Running the Go Lambda Function Locally
+
+```bash
+ark start -l flarebot-slack-cleanup
+```
+
+This will:
+1. Build the Go Lambda function
+2. Run it locally with `IS_LOCAL=true`
 
 ### Code Formatting
 
@@ -252,16 +272,20 @@ make build
 
 The app is configured for deployment with:
 - `Dockerfile` for containerization
-- `Procfile` for process management
-- `launch/flarebot.yml` for deployment configuration
+- `launch/flarebot.yml` for main Slack bot deployment
+- `launch/flarebot-slack-cleanup.yml` for Lambda function deployment
+- `cmd/flarebot-slack-cleanup/` contains the Go Lambda function
 
 ## Key Features
 
 - **Fire Flare**: Create new incident channels and Jira tickets
 - **Flare Transitions**: Manage flare states (mitigate, not a flare, unmitigate)
+- **Role Management**: Assign incident leads and communication leads
 - **Recent Deploys**: Track and display recent deployments
+- **PagerDuty Integration**: Show open alerts and recent critical alerts
 - **Google Docs Integration**: Create incident documents from templates
 - **Slack History Tracking**: Log messages to Google Sheets
+- **Channel Cleanup**: Automated archiving of old flare channels via Lambda
 
 ## Architecture Notes
 
@@ -269,7 +293,9 @@ The app is configured for deployment with:
 - Middleware pattern for request processing and context injection
 - Caching layer for Slack users and channels to reduce API calls
 - TypeScript for type safety and better developer experience
-- Integration with external services (Jira, Google) via dedicated modules
+- Integration with external services (Jira, Google, PagerDuty) via dedicated modules
+- Background tasks for file uploads and cache updates
+- Go Lambda function for automated channel cleanup
 
 ## Contributing
 
