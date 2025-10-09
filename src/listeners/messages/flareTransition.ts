@@ -81,7 +81,7 @@ async function flareTransition({
     text: flareChannelText,
   });
 
-  const followupMessage = `can you please <https://clever.atlassian.net/wiki/spaces/ENG/pages/108210465/Flare+Followups#Step-1%3A-Signing-up-for-flare-followup|sign up> for followup for tomorrow? Fill out the <https://clever.atlassian.net/browse/${jiraTicket}| jira ticket> to capture what we know, following instructions <https://clever.atlassian.net/wiki/spaces/ENG/pages/108210465/Flare+Followups#Step-2%3A-Updating-the-flare-ticket|here>.`;
+  const followupMessage = `can you please <https://clever.atlassian.net/wiki/spaces/ENG/pages/108210465/Flare+Followups#Signing-up-for-flare-followup|sign up> for followup for tomorrow? Fill out the <https://clever.atlassian.net/browse/${jiraTicket}| jira ticket> to capture what we know, following instructions <https://clever.atlassian.net/wiki/spaces/ENG/pages/108210465/Flare+Followups#Updating-the-flare-ticket|here>.`;
 
   if (mitigated) {
     const mitigationTime = new Date(parseInt(message.ts) * 1000);
