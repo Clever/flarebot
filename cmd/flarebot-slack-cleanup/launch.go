@@ -1,10 +1,7 @@
 package main
 
 import (
-	client "github.com/Clever/catapult/gen-go/client"
-	v9 "github.com/Clever/wag/clientconfig/v9"
 	trace "go.opentelemetry.io/otel/sdk/trace"
-	tracetest "go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"log"
 	"os"
 )
@@ -20,9 +17,7 @@ type LaunchConfig struct {
 }
 
 // Dependencies has clients for the service's dependencies
-type Dependencies struct {
-	Catapult client.Client
-}
+type Dependencies struct{}
 
 // Environment has environment variables and their values
 type Environment struct {
@@ -30,7 +25,6 @@ type Environment struct {
 	JiraOrigin          string
 	JiraUsername        string
 	JiraPassword        string
-	JiraProjectID       string
 	SlackBotToken       string
 	ChannelAgeThreshold string
 	DryRun              string
@@ -44,26 +38,15 @@ type ExternalUrlUsage struct{}
 
 // InitLaunchConfig creates a LaunchConfig
 func InitLaunchConfig(exp *trace.SpanExporter) LaunchConfig {
-	var exporter trace.SpanExporter
-	if exp == nil {
-		exporter = tracetest.NewNoopExporter()
-	} else {
-		exporter = *exp
-	}
-	catapult, err := client.NewFromDiscovery(v9.WithTracing("catapult", exporter))
-	if err != nil {
-		log.Fatalf("discovery error: %s", err)
-	}
 	return LaunchConfig{
 		AwsResources: AwsResources{},
-		Deps:         Dependencies{Catapult: catapult},
+		Deps:         Dependencies{},
 		Env: Environment{
 			ChannelAgeThreshold: requireEnvVar("CHANNEL_AGE_THRESHOLD"),
 			DryRun:              requireEnvVar("DRY_RUN"),
 			FlareChannelPrefix:  requireEnvVar("FLARE_CHANNEL_PREFIX"),
 			JiraOrigin:          requireEnvVar("JIRA_ORIGIN"),
 			JiraPassword:        requireEnvVar("JIRA_PASSWORD"),
-			JiraProjectID:       requireEnvVar("JIRA_PROJECT_ID"),
 			JiraUsername:        requireEnvVar("JIRA_USERNAME"),
 			SlackBotToken:       requireEnvVar("SLACK_BOT_TOKEN"),
 		},

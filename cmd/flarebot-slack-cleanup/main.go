@@ -224,10 +224,9 @@ func main() {
 	launchConfig := InitLaunchConfig(nil)
 	slackClient := slk.New(launchConfig.Env.SlackBotToken)
 	jiraServer := jira.JiraServer{
-		Origin:    launchConfig.Env.JiraOrigin,
-		Username:  launchConfig.Env.JiraUsername,
-		Password:  launchConfig.Env.JiraPassword,
-		ProjectID: launchConfig.Env.JiraProjectID,
+		Origin:   launchConfig.Env.JiraOrigin,
+		Username: launchConfig.Env.JiraUsername,
+		Password: launchConfig.Env.JiraPassword,
 	}
 
 	handler := Handler{

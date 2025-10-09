@@ -8,7 +8,6 @@ PKGS := $(shell go list ./... | grep -v /vendor)
 EXECUTABLE := flarebot
 LAMBDAS := $(shell [ -d "./cmd" ] && ls ./cmd/)
 _APP_NAME ?= $(APP_NAME)
-export PATH := $(PWD)/bin:$(PATH)
 TESTS=$(shell cd src/ && find . -name "*.test.ts")
 
 FORMATTED_FILES := $(shell find src/ -name "*.ts")
@@ -19,7 +18,7 @@ ESLINT := ./node_modules/.bin/eslint
 
 .PHONY: test $(PKGS) clean vendor format format-all format-check lint-es lint-fix lint
 
-# $(eval $(call golang-version-check,1.24))
+$(eval $(call golang-version-check,1.24))
 
 all: test build
 
@@ -27,19 +26,11 @@ test: generate $(PKGS)
 
 generate: tool
 	GENERATE_PWD=$(PWD) go generate ./...
-	go mod tidy
 
 $(LAMBDAS): generate
 	$(call lambda-build-go,./cmd/$@,$@)
 
 build: $(LAMBDAS)
-	go build -o bin/jira-cli github.com/Clever/flarebot/jira/testcmd
-	go build -o bin/slack-cli github.com/Clever/flarebot/slack/testcmd
-	go build -o bin/$(EXECUTABLE) $(PKG)
-
-# for later, when I want to go strict
-#$(PKGS): golang-test-all-strict-deps
-#	$(call golang-test-all-strict,$@)
 
 $(PKGS): golang-test-all-deps
 	$(call golang-test-all,$@)
