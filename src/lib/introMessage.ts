@@ -143,7 +143,7 @@ const introMessage = (
     type: "section",
     text: {
       type: "mrkdwn",
-      text: `Finally, once the flare is mitigated, fill out the <https://clever.atlassian.net/browse/${issueKey}| jira ticket> to capture what we know, following instructions <https://clever.atlassian.net/wiki/spaces/ENG/pages/108210465/Flare+Followups#Step-2%3A--Updating-the-flare-ticket|here> and <https://clever.atlassian.net/wiki/spaces/ENG/pages/108210465/Flare+Followups#Step-1%3A-Signing-up-for-flare-followup|sign up> for the retro. Optionally use the <https://docs.google.com/document/d/${flaredoc}|Flare doc> and schedule a full post-mortem if there was high impact. You can also find the slack history stored <https://docs.google.com/spreadsheets/d/${slackHistoryDoc}|here>`,
+      text: `Finally, once the flare is mitigated, fill out the <https://clever.atlassian.net/browse/${issueKey}| jira ticket> to capture what we know, following instructions <https://clever.atlassian.net/wiki/spaces/ENG/pages/108210465/Flare+Followups#Step-2%3A-Updating-the-flare-ticket|here> and <https://clever.atlassian.net/wiki/spaces/ENG/pages/108210465/Flare+Followups#Step-1%3A-Signing-up-for-flare-followup|sign up> for the retro. Optionally use the <https://docs.google.com/document/d/${flaredoc}|Flare doc> and schedule a full post-mortem if there was high impact. You can also find the slack history stored <https://docs.google.com/spreadsheets/d/${slackHistoryDoc}|here>`,
     },
   },
 ];
